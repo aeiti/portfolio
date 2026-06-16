@@ -1,0 +1,60 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container row">
+    <div>
+      <p class="eyebrow">Adam Manning &middot; Lighting Design</p>
+      <p class="contact">
+        <a href="mailto:adam@thomasavl.com">adam@thomasavl.com</a>
+      </p>
+    </div>
+    <nav aria-label="Footer">
+      <ul>
+        <li><a href={`${base}/work/`}>Work</a></li>
+        <li><a href={`${base}/about/`}>About</a></li>
+        <li><a href={`${base}/contact/`}>Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="container small">
+    <span>&copy; {year} Adam Manning</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 6rem;
+    padding-block: 3rem 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .contact { font-family: var(--font-display); font-size: 1.4rem; margin-top: 0.5rem; }
+  .contact a { text-decoration-color: var(--border); }
+  nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: right;
+  }
+  nav a { color: var(--fg-muted); text-decoration: none; }
+  nav a:hover { color: var(--fg); }
+  .small {
+    margin-top: 2rem;
+    color: var(--fg-faint);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+</style>

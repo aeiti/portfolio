@@ -1,0 +1,46 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  images: ImageMetadata[];
+  alt: string;
+}
+
+const { images, alt } = Astro.props;
+---
+<div class="gallery" role="list">
+  {images.map((img, i) => (
+    <figure role="listitem">
+      <Image
+        src={img}
+        alt={`${alt} — image ${i + 1}`}
+        widths={[640, 960, 1280, 1800]}
+        sizes="(min-width: 900px) 50vw, 100vw"
+        loading={i < 2 ? 'eager' : 'lazy'}
+      />
+    </figure>
+  ))}
+</div>
+
+<style>
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin: 2rem 0;
+  }
+  figure {
+    margin: 0;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+  }
+  figure :global(img) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  @media (max-width: 640px) {
+    .gallery { grid-template-columns: 1fr; }
+  }
+</style>

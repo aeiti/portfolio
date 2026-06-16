@@ -1,0 +1,66 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const links = [
+  { href: `${base}/work/`, label: 'Work' },
+  { href: `${base}/about/`, label: 'About' },
+  { href: `${base}/contact/`, label: 'Contact' },
+];
+const currentPath = Astro.url.pathname.replace(/\/$/, '');
+---
+<nav class="site-nav" aria-label="Primary">
+  <a href={`${base}/`} class="brand">Adam Manning</a>
+  <ul>
+    {links.map(({ href, label }) => {
+      const active = currentPath === href.replace(/\/$/, '');
+      return (
+        <li>
+          <a href={href} aria-current={active ? 'page' : undefined}>{label}</a>
+        </li>
+      );
+    })}
+  </ul>
+</nav>
+
+<style>
+  .site-nav {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1.75rem var(--gutter);
+    max-width: var(--max-w);
+    margin-inline: auto;
+  }
+  .brand {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  ul {
+    display: flex;
+    gap: 1.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  ul a {
+    text-decoration: none;
+    font-size: 0.95rem;
+    color: var(--fg-muted);
+    transition: color 120ms ease;
+  }
+  ul a:hover,
+  ul a[aria-current='page'] {
+    color: var(--fg);
+  }
+  ul a[aria-current='page'] {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 0.35em;
+  }
+  @media (max-width: 540px) {
+    .site-nav { gap: 1rem; }
+    ul { gap: 1rem; }
+  }
+</style>

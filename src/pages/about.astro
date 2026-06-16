@@ -1,0 +1,172 @@
+---
+import Base from '../layouts/Base.astro';
+
+const additionalCredits: { year: number; title: string; discipline: string; venue?: string }[] = [
+  { year: 2024, title: 'Cirque du Soleil — KÀ', discipline: 'Concert / Live', venue: 'MGM Grand, Las Vegas' },
+  { year: 2024, title: 'CrowdStrike Fal.Con', discipline: 'Corporate / Event' },
+  { year: 2024, title: 'James Cameron — private event', discipline: 'Corporate / Event' },
+  { year: 2022, title: 'NFL games — Allegiant Stadium', discipline: 'Sports / Broadcast' },
+  { year: 2025, title: 'Hershey', discipline: 'Theme Park / Event' },
+  { year: 2025, title: 'The Staircase', discipline: 'Theatre' },
+  { year: 2025, title: 'Edward Tulane', discipline: 'Theatre' },
+  { year: 2025, title: 'Cordially', discipline: 'Theatre' },
+  { year: 2025, title: 'Wish You Were Here', discipline: 'Theatre' },
+  { year: 2025, title: 'MB Memorial', discipline: 'Event' },
+  { year: 2026, title: 'Brigadoon', discipline: 'Theatre' },
+  { year: 2026, title: 'Amadeus', discipline: 'Theatre' },
+  { year: 2022, title: 'Rudolph', discipline: 'Theatre' },
+  { year: 2021, title: 'Annie', discipline: 'Theatre' },
+  { year: 2021, title: 'School of Rock', discipline: 'Theatre' },
+  { year: 2021, title: 'Beauty and the Beast', discipline: 'Theatre' },
+  { year: 2021, title: 'The Count of Monte Cristo', discipline: 'Theatre' },
+  { year: 2021, title: 'PBR', discipline: 'Concert / Live' },
+  { year: 2021, title: 'TCA', discipline: 'Concert / Live' },
+  { year: 2020, title: 'David Archuleta', discipline: 'Concert / Live' },
+  { year: 2020, title: 'Rat Pack', discipline: 'Concert / Live' },
+  { year: 2019, title: 'The Little Mermaid', discipline: 'Theatre' },
+  { year: 2019, title: 'When You Wish', discipline: 'Theatre' },
+  { year: 2019, title: 'Hafen Rep', discipline: 'Theatre' },
+  { year: 2019, title: 'TCA Lighting', discipline: 'Theatre' },
+  { year: 2019, title: 'COPA Spring Concert', discipline: 'Concert / Live' },
+].sort((a, b) => b.year - a.year);
+---
+<Base
+  title="About"
+  description="Adam Manning is a lighting designer working across concert, theatre, and corporate-event productions."
+>
+  <section class="container about">
+    <p class="eyebrow">About</p>
+    <h1>Adam Manning</h1>
+
+    <div class="bio prose">
+      <p>
+        Adam Manning is a lighting designer and programmer based in the
+        United States, working across live music, theatre, and corporate
+        events. <em>(Replace this with a real bio — 2–4 sentences covering
+        background, current work, and approach.)</em>
+      </p>
+      <p>
+        <em>(Add a second paragraph about training, frequent collaborators,
+        or design philosophy if useful.)</em>
+      </p>
+    </div>
+
+    <div class="grid">
+      <section>
+        <h2 class="section-title">Capabilities</h2>
+        <ul class="list">
+          <li>Lighting design — concert, theatre, corporate</li>
+          <li>Lighting programming — ETC Eos family, GrandMA, Hog</li>
+          <li>Drafting — Vectorworks, Lightwright</li>
+          <li>Associate / assistant LD</li>
+          <li>Technical direction &amp; rigging consult</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="section-title">Credentials</h2>
+        <ul class="list">
+          <li>OSHA 10 certified (2021)</li>
+          <li><em>(Add unions / affiliations: USA-829, IATSE local, etc.)</em></li>
+          <li><em>(Add education / training)</em></li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="more">
+      <h2 class="section-title">Selected additional credits</h2>
+      <ul class="credits-list">
+        {additionalCredits.map((c) => (
+          <li>
+            <span class="year">{c.year}</span>
+            <span class="title">{c.title}</span>
+            <span class="meta">{c.discipline}{c.venue ? ` — ${c.venue}` : ''}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </section>
+</Base>
+
+<style>
+  .about { padding-block: 3rem 5rem; }
+  .bio { font-size: 1.1rem; }
+  .bio em {
+    background: var(--bg-elev);
+    color: var(--fg-muted);
+    font-style: normal;
+    padding: 0.15em 0.4em;
+    border-left: 2px solid var(--accent);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem;
+    margin-top: 3rem;
+  }
+  @media (max-width: 680px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .section-title {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .list li {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.98rem;
+  }
+  .list li em {
+    color: var(--fg-muted);
+    font-style: italic;
+  }
+
+  .more { margin-top: 4rem; }
+  .credits-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .credits-list li {
+    display: grid;
+    grid-template-columns: 4rem 1fr auto;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: baseline;
+  }
+  .credits-list .year {
+    font-family: var(--font-display);
+    color: var(--fg-muted);
+    font-size: 0.95rem;
+  }
+  .credits-list .title {
+    font-size: 1rem;
+  }
+  .credits-list .meta {
+    color: var(--fg-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+  }
+  @media (max-width: 560px) {
+    .credits-list li {
+      grid-template-columns: 3rem 1fr;
+    }
+    .credits-list .meta { grid-column: 2; }
+  }
+</style>

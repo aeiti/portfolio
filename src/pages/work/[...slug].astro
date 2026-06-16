@@ -1,0 +1,34 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Project from '../../layouts/Project.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('projects', ({ data }) => !data.draft);
+  return entries.map((entry) => ({
+    params: { slug: entry.id.replace(/\/index$/, '') },
+    props: { entry },
+  }));
+}
+
+type Props = { entry: CollectionEntry<'projects'> };
+const { entry } = Astro.props as Props;
+const { Content } = await render(entry);
+const d = entry.data;
+---
+<Project
+  title={d.title}
+  discipline={d.discipline}
+  year={d.year}
+  role={d.role}
+  venue={d.venue}
+  client={d.client}
+  credits={d.credits}
+  synopsis={d.synopsis}
+  cover={d.cover}
+  coverKind={d.coverKind}
+  gallery={d.gallery}
+  documents={d.documents}
+  consoleFilesAvailable={d.consoleFilesAvailable}
+>
+  <Content />
+</Project>
