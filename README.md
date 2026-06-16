@@ -43,8 +43,8 @@ role: Lighting Designer
 venue: Optional Venue Name
 client: Optional Client
 synopsis: One- to three-sentence summary.
-cover: ./images/cover.jpg
-coverKind: photo           # photo | plot   (controls cover image layout)
+cover: ./images/cover.jpg  # optional — coverless projects get a typeset title-card fallback
+coverKind: photo           # photo | plot   (controls cover image layout; ignored when cover is omitted)
 gallery:
   - ./images/01.jpg
 documents:
