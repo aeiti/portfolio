@@ -20,7 +20,7 @@ const projects = defineCollection({
         )
         .default([]),
       synopsis: z.string(),
-      cover: image(),
+      cover: image().optional(),
       coverKind: z.enum(['photo', 'plot']).default('photo'),
       gallery: z.array(image()).default([]),
       documents: z
