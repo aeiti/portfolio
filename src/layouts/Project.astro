@@ -1,0 +1,213 @@
+---
+import { Image } from 'astro:assets';
+import Base from './Base.astro';
+import Gallery from '../components/Gallery.astro';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  title: string;
+  discipline: 'concert' | 'theatre' | 'corporate-event';
+  year: number;
+  role: string;
+  venue?: string;
+  client?: string;
+  credits: { role: string; name: string }[];
+  synopsis: string;
+  cover: ImageMetadata;
+  coverKind: 'photo' | 'plot';
+  gallery: ImageMetadata[];
+  documents: { label: string; file: string }[];
+  consoleFilesAvailable: boolean;
+}
+
+const {
+  title, discipline, year, role, venue, client,
+  credits, synopsis, cover, coverKind, gallery,
+  documents, consoleFilesAvailable,
+} = Astro.props;
+
+const disciplineLabel: Record<Props['discipline'], string> = {
+  concert: 'Concert',
+  theatre: 'Theatre',
+  'corporate-event': 'Corporate / Event',
+};
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Base title={title} description={synopsis} ogImage={cover.src}>
+  <article>
+    <div class={`hero kind-${coverKind}`}>
+      <Image
+        src={cover}
+        alt={`${title} — cover image`}
+        widths={[640, 960, 1280, 1800, 2400]}
+        sizes="100vw"
+        loading="eager"
+        fetchpriority="high"
+      />
+    </div>
+
+    <header class="container project-header">
+      <p class="eyebrow">{disciplineLabel[discipline]} &middot; {year}</p>
+      <h1>{title}</h1>
+      <p class="role">{role}{venue ? ` · ${venue}` : ''}{client ? ` · ${client}` : ''}</p>
+      <p class="synopsis prose">{synopsis}</p>
+    </header>
+
+    {credits.length > 0 && (
+      <section class="container credits">
+        <h2 class="section-title">Credits</h2>
+        <dl>
+          {credits.map(({ role: r, name }) => (
+            <div>
+              <dt>{r}</dt>
+              <dd>{name}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {gallery.length > 0 && (
+      <section class="container">
+        <h2 class="section-title">Gallery</h2>
+        <Gallery images={gallery} alt={title} />
+      </section>
+    )}
+
+    {documents.length > 0 && (
+      <section class="container">
+        <h2 class="section-title">Documents</h2>
+        <ul class="docs">
+          {documents.map(({ label, file }) => (
+            <li>
+              <a href={`${base}${file}`} target="_blank" rel="noopener">
+                {label} <span aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {consoleFilesAvailable && (
+      <section class="container">
+        <p class="console-note">
+          ETC Eos / Element console show files for this production are available on request.
+        </p>
+      </section>
+    )}
+
+    <section class="container body-content prose">
+      <slot />
+    </section>
+  </article>
+</Base>
+
+<style>
+  article > .container { max-width: var(--max-w); }
+
+  .hero {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero.kind-plot {
+    aspect-ratio: 4 / 3;
+  }
+  .hero.kind-plot :global(img) {
+    object-fit: contain;
+  }
+
+  .project-header {
+    margin-top: 3rem;
+  }
+  .project-header h1 {
+    margin-top: 0.5rem;
+  }
+  .role {
+    color: var(--fg-muted);
+    font-size: 1.05rem;
+    margin-top: -0.5rem;
+  }
+  .synopsis {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin-top: 1.5rem;
+  }
+
+  .section-title {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin: 3.5rem 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .credits dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem 2rem;
+    margin: 0;
+  }
+  .credits div {
+    display: contents;
+  }
+  .credits dt {
+    color: var(--fg-muted);
+    font-size: 0.95rem;
+  }
+  .credits dd {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+  }
+  @media (max-width: 640px) {
+    .credits dl { grid-template-columns: 1fr; gap: 0.1rem; }
+    .credits dt { margin-top: 0.75rem; }
+  }
+
+  .docs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .docs a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    color: var(--fg);
+  }
+  .docs a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .console-note {
+    margin-top: 2.5rem;
+    padding: 1rem 1.25rem;
+    border-left: 2px solid var(--accent);
+    background: var(--bg-elev);
+    color: var(--fg-muted);
+    font-size: 0.95rem;
+  }
+
+  .body-content { margin-top: 2.5rem; }
+</style>

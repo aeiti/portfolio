@@ -1,0 +1,200 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const all = await getCollection('projects', ({ data }) => !data.draft);
+const sorted = all.sort(
+  (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
+);
+
+const featured = sorted.filter((e) => e.data.featured).slice(0, 6);
+const featuredOrRecent = featured.length > 0 ? featured : sorted.slice(0, 6);
+
+const hero = featuredOrRecent[0];
+
+function slugOf(entry: (typeof sorted)[number]) {
+  return entry.id.replace(/\/index$/, '');
+}
+---
+<Base title="Adam Manning">
+  <section class="hero container">
+    <p class="eyebrow">Lighting Design</p>
+    <h1>Lighting for concert,<br />theatre, and corporate stages.</h1>
+    <p class="lede prose">
+      Adam Manning is a lighting designer and programmer working across
+      live music, musical theatre, and large-format corporate events.
+    </p>
+    <div class="cta-row">
+      <a class="cta primary" href={`${base}/work/`}>See the work</a>
+      <a class="cta" href={`${base}/contact/`}>Get in touch</a>
+    </div>
+  </section>
+
+  {hero && (
+    <section class="hero-image">
+      <ProjectCard
+        href={`${base}/work/${slugOf(hero)}/`}
+        title={hero.data.title}
+        discipline={hero.data.discipline}
+        year={hero.data.year}
+        cover={hero.data.cover}
+        coverKind={hero.data.coverKind}
+      />
+    </section>
+  )}
+
+  <section class="container featured">
+    <header class="section-head">
+      <h2>Selected work</h2>
+      <a href={`${base}/work/`}>All projects →</a>
+    </header>
+    <div class="grid">
+      {featuredOrRecent.slice(1).map((entry) => (
+        <ProjectCard
+          href={`${base}/work/${slugOf(entry)}/`}
+          title={entry.data.title}
+          discipline={entry.data.discipline}
+          year={entry.data.year}
+          cover={entry.data.cover}
+          coverKind={entry.data.coverKind}
+        />
+      ))}
+    </div>
+  </section>
+
+  <section class="container disciplines">
+    <h2 class="section-title">Disciplines</h2>
+    <div class="d-grid">
+      <a href={`${base}/work/?discipline=concert`} class="d">
+        <span class="d-num">01</span>
+        <span class="d-name">Concert &amp; Live Music</span>
+      </a>
+      <a href={`${base}/work/?discipline=theatre`} class="d">
+        <span class="d-num">02</span>
+        <span class="d-name">Theatre &amp; Musicals</span>
+      </a>
+      <a href={`${base}/work/?discipline=corporate-event`} class="d">
+        <span class="d-num">03</span>
+        <span class="d-name">Corporate &amp; Events</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="container contact-cta">
+    <h2>Have a show coming up?</h2>
+    <p class="prose">
+      Open for design, programming, and associate work across the U.S.
+    </p>
+    <a class="cta primary" href={`${base}/contact/`}>Start a conversation</a>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    padding-top: 4rem;
+    padding-bottom: 3rem;
+  }
+  .hero h1 { margin-bottom: 1.25rem; }
+  .lede {
+    font-size: 1.2rem;
+    color: var(--fg-muted);
+    margin-bottom: 2rem;
+  }
+  .cta-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-image {
+    max-width: var(--max-w);
+    margin: 2rem auto 4rem;
+    padding-inline: var(--gutter);
+  }
+
+  .featured { margin-top: 4rem; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .section-head h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  .section-head a {
+    color: var(--fg-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .section-head a:hover { color: var(--accent); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .disciplines { margin-top: 5rem; }
+  .section-title {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .d-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  .d {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 1.5rem 1.25rem;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .d:hover { border-color: var(--accent); }
+  .d-num {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--accent);
+  }
+  .d-name {
+    font-size: 1rem;
+    color: var(--fg);
+  }
+  @media (max-width: 700px) {
+    .d-grid { grid-template-columns: 1fr; }
+  }
+
+  .contact-cta {
+    margin-top: 6rem;
+    padding: 3rem 0;
+    text-align: center;
+  }
+  .contact-cta h2 {
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+  }
+  .contact-cta .prose { margin-inline: auto; }
+</style>
