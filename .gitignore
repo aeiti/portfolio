@@ -28,3 +28,9 @@ pnpm-debug.log*
 
 # misc
 *.tsbuildinfo
+
+# personal working docs
+WORK-TODO.md
+
+# stray editor/runtime artifacts
+.Rhistory
