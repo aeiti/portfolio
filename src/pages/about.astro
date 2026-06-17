@@ -1,34 +1,33 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 
-const additionalCredits: { year: number; title: string; discipline: string; venue?: string }[] = [
+const additionalCreditsRaw: { year: number; title: string; discipline: string; venue?: string }[] = [
   { year: 2024, title: 'Cirque du Soleil — KÀ', discipline: 'Concert / Live', venue: 'MGM Grand, Las Vegas' },
   { year: 2024, title: 'CrowdStrike Fal.Con', discipline: 'Corporate / Event' },
   { year: 2024, title: 'James Cameron — private event', discipline: 'Corporate / Event' },
   { year: 2022, title: 'NFL games — Allegiant Stadium', discipline: 'Sports / Broadcast' },
   { year: 2025, title: 'Hershey', discipline: 'Theme Park / Event' },
-  { year: 2025, title: 'The Staircase', discipline: 'Theatre' },
   { year: 2025, title: 'Edward Tulane', discipline: 'Theatre' },
-  { year: 2025, title: 'Cordially', discipline: 'Theatre' },
-  { year: 2025, title: 'Wish You Were Here', discipline: 'Theatre' },
   { year: 2025, title: 'MB Memorial', discipline: 'Event' },
-  { year: 2026, title: 'Brigadoon', discipline: 'Theatre' },
-  { year: 2026, title: 'Amadeus', discipline: 'Theatre' },
-  { year: 2022, title: 'Rudolph', discipline: 'Theatre' },
-  { year: 2021, title: 'Annie', discipline: 'Theatre' },
-  { year: 2021, title: 'School of Rock', discipline: 'Theatre' },
-  { year: 2021, title: 'Beauty and the Beast', discipline: 'Theatre' },
-  { year: 2021, title: 'The Count of Monte Cristo', discipline: 'Theatre' },
   { year: 2021, title: 'PBR', discipline: 'Concert / Live' },
   { year: 2021, title: 'TCA', discipline: 'Concert / Live' },
   { year: 2020, title: 'David Archuleta', discipline: 'Concert / Live' },
   { year: 2020, title: 'Rat Pack', discipline: 'Concert / Live' },
-  { year: 2019, title: 'The Little Mermaid', discipline: 'Theatre' },
-  { year: 2019, title: 'When You Wish', discipline: 'Theatre' },
   { year: 2019, title: 'Hafen Rep', discipline: 'Theatre' },
   { year: 2019, title: 'TCA Lighting', discipline: 'Theatre' },
   { year: 2019, title: 'COPA Spring Concert', discipline: 'Concert / Live' },
-].sort((a, b) => b.year - a.year);
+];
+
+const normalize = (s: string) =>
+  s.toLowerCase().replace(/^(the|a|disney's|disney|rodgers\s*&\s*hammerstein's)\s+/, '').replace(/[^a-z0-9]/g, '');
+
+const projects = await getCollection('projects', ({ data }) => !data.draft);
+const projectTitles = new Set(projects.map((p) => normalize(p.data.title)));
+
+const additionalCredits = additionalCreditsRaw
+  .filter((c) => !projectTitles.has(normalize(c.title)))
+  .sort((a, b) => b.year - a.year);
 ---
 <Base
   title="About"
