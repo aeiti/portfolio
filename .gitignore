@@ -31,3 +31,6 @@ pnpm-debug.log*
 
 # personal working docs
 WORK-TODO.md
+
+# stray editor/runtime artifacts
+.Rhistory
