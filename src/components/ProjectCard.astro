@@ -5,7 +5,7 @@ import type { ImageMetadata } from 'astro';
 interface Props {
   href: string;
   title: string;
-  discipline: 'concert' | 'theatre' | 'corporate-event';
+  discipline: 'concert' | 'theatre' | 'corporate-event' | 'circus';
   year: number;
   cover?: ImageMetadata;
   coverKind?: 'photo' | 'plot';
@@ -15,6 +15,7 @@ const disciplineLabel: Record<Props['discipline'], string> = {
   concert: 'Concert',
   theatre: 'Theatre',
   'corporate-event': 'Corporate / Event',
+  circus: 'Circus',
 };
 
 const { href, title, discipline, year, cover, coverKind = 'photo' } = Astro.props;
@@ -92,6 +93,11 @@ const { href, title, discipline, year, cover, coverKind = 'photo' } = Astro.prop
   .art.kind-titlecard.discipline-corporate-event {
     background:
       radial-gradient(120% 80% at 50% 100%, rgba(180, 180, 180, 0.08), transparent 60%),
+      var(--bg-elev);
+  }
+  .art.kind-titlecard.discipline-circus {
+    background:
+      radial-gradient(120% 80% at 50% 100%, rgba(220, 80, 80, 0.14), transparent 60%),
       var(--bg-elev);
   }
   .card:hover .art.kind-titlecard {
