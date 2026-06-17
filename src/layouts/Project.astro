@@ -113,6 +113,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   .hero {
     width: 100%;
     aspect-ratio: 16 / 9;
+    max-height: 60vh;
     overflow: hidden;
     background: var(--bg-elev);
     border-bottom: 1px solid var(--border);
@@ -124,6 +125,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   }
   .hero.kind-plot {
     aspect-ratio: 4 / 3;
+    max-height: 55vh;
   }
   .hero.kind-plot :global(img) {
     object-fit: contain;
