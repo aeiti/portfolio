@@ -6,7 +6,7 @@ const projects = defineCollection({
   schema: ({ image }) =>
     z.object({
       title: z.string(),
-      discipline: z.enum(['concert', 'theatre', 'corporate-event']),
+      discipline: z.enum(['concert', 'theatre', 'corporate-event', 'circus']),
       year: z.number().int().min(1990).max(2100),
       role: z.string(),
       venue: z.string().optional(),
