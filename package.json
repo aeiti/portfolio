@@ -9,7 +9,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check": "astro check"
+    "check": "astro check",
+    "resume:pdf": "bash scripts/resume-pdf.sh"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

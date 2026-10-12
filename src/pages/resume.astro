@@ -1,0 +1,263 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ContactLink from '../components/ContactLink.astro';
+import { contact } from '../lib/contact';
+import { roleScore } from '../lib/showcase';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// Selected credits stay in sync with the project pages: the most recent
+// shows where Adam programmed, designed, directed, ran electrics, or ran
+// the board. Regenerate the PDF after adding projects (npm run resume:pdf).
+const projects = await getCollection('projects', ({ data }) => !data.draft);
+const credits = projects
+  .filter((p) => roleScore(p.data.role) >= 2 && (p.data.venue || p.data.client))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
+  .slice(0, 14);
+
+const experience = [
+  {
+    title: 'Lighting Programmer / LX Operator',
+    org: 'Pasadena Playhouse',
+    place: 'Pasadena, CA',
+    when: 'Jan 2026 – Present',
+    note: 'Program and operate mainstage productions; diagnose network and device-configuration faults live, against a fixed curtain time.',
+  },
+  {
+    title: 'LX Operator / Electrician',
+    org: 'South Coast Repertory',
+    place: 'Costa Mesa, CA',
+    when: 'Sep 2024 – Nov 2025',
+    note: 'Operated and maintained control systems across two houses; first responder for technical faults during performances.',
+  },
+  {
+    title: 'Lighting Programmer / Master Electrician',
+    org: 'PRG',
+    place: 'Las Vegas, NV',
+    when: 'May 2024 – Sep 2024',
+    note: 'Led crews of up to 15 electricians plus overhire on corporate events; built and commissioned rigs of 75 to 400 fixtures on short install windows.',
+  },
+  {
+    title: 'Lighting Technician',
+    org: 'Cirque du Soleil — KÀ',
+    place: 'Las Vegas, NV',
+    when: 'Oct 2021 – Jul 2024',
+    note: 'Maintained a permanently installed 3,300-fixture system across 11 theatre levels, on a schedule of up to ten shows a week.',
+  },
+  {
+    title: 'Master Electrician',
+    org: 'Tuacahn Center for the Arts',
+    place: 'Ivins, UT',
+    when: 'May 2017 – Oct 2021',
+    note: 'Ran electrics for a 1,900-seat outdoor amphitheatre with rigs of up to 750 fixtures across a repertory season.',
+  },
+];
+---
+<Base
+  title="Résumé"
+  description="Résumé — Adam Manning, lighting programmer, board operator, and electrician."
+>
+  <article class="container resume">
+    <header class="head">
+      <h1>Adam Manning</h1>
+      <p class="tagline">Lighting Programmer · Board Operator · Electrician</p>
+      <p class="contact-row">
+        <span>{contact.location}</span>
+        <ContactLink kind="email" />
+        <ContactLink kind="phone" />
+        <a href={contact.linkedin}>linkedin.com/in/adam-manning-lx</a>
+        <a href="https://aeiti.github.io/portfolio/">aeiti.github.io/portfolio</a>
+      </p>
+      <p class="actions screen-only">
+        <a href={`${base}/pdfs/resume/adam-manning-resume.pdf`} download>Download PDF</a>
+      </p>
+    </header>
+
+    <section>
+      <h2>Summary</h2>
+      <p>
+        Lighting programmer, board operator, and electrician with nine years
+        in live production — from a 1,900-seat outdoor amphitheatre and
+        Cirque du Soleil's <em>KÀ</em> to the mainstage at Pasadena
+        Playhouse. Programs on ETC Eos and grandMA; comfortable diagnosing
+        network and device faults live, against a curtain time that doesn't
+        move.
+      </p>
+    </section>
+
+    <section>
+      <h2>Experience</h2>
+      {experience.map((job) => (
+        <div class="job">
+          <div class="job-head">
+            <h3>{job.title} <span class="org">— {job.org}</span></h3>
+            <span class="when">{job.when} · {job.place}</span>
+          </div>
+          <p>{job.note}</p>
+        </div>
+      ))}
+    </section>
+
+    <section>
+      <h2>Selected credits</h2>
+      <ul class="credits">
+        {credits.map((p) => (
+          <li>
+            <span class="year">{p.data.year}</span>
+            <span class="show"><a href={`${base}/work/${p.id.replace(/\/index$/, '')}/`}><em>{p.data.title}</em></a></span>
+            <span class="venue">{p.data.venue || p.data.client}</span>
+            <span class="role">{p.data.role}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="more screen-only">Full list at <a href={`${base}/work/`}>aeiti.github.io/portfolio/work</a>.</p>
+    </section>
+
+    <section class="two-col">
+      <div>
+        <h2>Skills</h2>
+        <ul class="plain">
+          <li><b>Consoles:</b> ETC Eos family, grandMA2/3</li>
+          <li><b>Systems:</b> show networking and device configuration, power distribution</li>
+          <li><b>Also:</b> web development — React, TypeScript (<a href={contact.github}>github.com/aeiti</a>)</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Credentials</h2>
+        <ul class="plain">
+          <li>IATSE Local 33</li>
+          <li>OSHA 10 (2021)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Education</h2>
+      <p>
+        Coursework in computer science at Weber State University, Utah Tech
+        University, and University of the People; no degree conferred. High
+        school diploma, Fremont High School, Plain City, UT.
+      </p>
+    </section>
+  </article>
+</Base>
+
+<style>
+  .resume {
+    max-width: 52rem;
+    padding-block: 3rem 4rem;
+  }
+  .head { margin-bottom: 2rem; }
+  .head h1 { margin: 0; }
+  .tagline {
+    margin: 0.35rem 0 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .contact-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    margin: 0;
+    color: var(--fg-muted);
+    font-size: 0.92rem;
+  }
+  .contact-row a, .contact-row :global(a) { color: inherit; text-decoration-color: var(--border-strong); }
+  .actions { margin-top: 1.25rem; }
+  .actions a {
+    display: inline-block;
+    font-size: 0.85rem;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.4rem 0.9rem;
+  }
+
+  h2 {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin: 2.25rem 0 0.9rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  section p { margin: 0; }
+
+  .job + .job { margin-top: 1rem; }
+  .job-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0 1rem;
+  }
+  .job h3 {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .org { font-weight: 400; color: var(--fg-muted); }
+  .when { font-size: 0.85rem; color: var(--fg-muted); white-space: nowrap; }
+  .job p { margin-top: 0.25rem; color: var(--fg-muted); }
+
+  .credits { list-style: none; margin: 0; padding: 0; }
+  .credits li {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, 1.4fr);
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.92rem;
+  }
+  .credits .year, .credits .venue, .credits .role { color: var(--fg-muted); }
+  .credits a { color: inherit; text-decoration: none; }
+  .credits a:hover { color: var(--accent); }
+  .more { margin-top: 0.75rem; font-size: 0.85rem; color: var(--fg-muted); }
+  @media (max-width: 640px) {
+    .credits li { grid-template-columns: 3rem 1fr; }
+    .credits .venue, .credits .role { grid-column: 2; }
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 0 2.5rem;
+  }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+  .plain { list-style: none; margin: 0; padding: 0; }
+  .plain li { padding: 0.2rem 0; }
+  .plain b { font-weight: 600; }
+
+  /* Print / PDF: one light letter page, no site chrome. */
+  @page { size: letter; margin: 0.45in 0.55in; }
+  @media print {
+    :global(.site-nav), :global(.site-footer), .screen-only { display: none !important; }
+    :global(html) { font-size: 8.6pt; }
+    :global(html), :global(body) {
+      background: #fff !important;
+      color: #1a1a1a !important;
+      --fg: #1a1a1a;
+      --fg-muted: #555;
+      --fg-faint: #888;
+      --accent: #8a5a12;
+      --border: #ddd;
+      --border-strong: #bbb;
+    }
+    .resume { max-width: none; padding: 0; line-height: 1.32; }
+    .head { margin-bottom: 0.5rem; }
+    .head h1 { font-size: 2.3rem; }
+    .tagline { margin: 0.1rem 0 0.3rem; }
+    .contact-row { gap: 0 0.9rem; }
+    h2 { margin: 1rem 0 0.4rem; padding-bottom: 0.2rem; }
+    .job + .job { margin-top: 0.45rem; }
+    .job p { margin-top: 0.05rem; }
+    .credits li { padding: 0.15rem 0; gap: 0.5rem; }
+    .plain li { padding: 0.05rem 0; }
+    .resume :global(a) { text-decoration: none !important; }
+  }
+</style>
