@@ -32,6 +32,8 @@ const projects = defineCollection({
         )
         .default([]),
       consoleFilesAvailable: z.boolean().default(false),
+      // Which ETC console the show file is for; nearly everything is Eos.
+      console: z.enum(['eos', 'element']).default('eos'),
       featured: z.boolean().default(false),
       publishedAt: z.date(),
       draft: z.boolean().default(false),
