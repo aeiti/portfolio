@@ -13,7 +13,7 @@ const { title, description, ogImage } = Astro.props;
 const fullTitle = title === 'Adam Manning' ? title : `${title} — Adam Manning`;
 const desc =
   description ??
-  'Adam Manning — lighting designer for concert, theatre, and corporate-event productions.';
+  'Adam Manning — lighting programmer, board operator, and electrician for theatre, concerts, and corporate events.';
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 const og = ogImage ? new URL(ogImage, Astro.site).toString() : null;
 ---
