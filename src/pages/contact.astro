@@ -1,26 +1,47 @@
 ---
 import Base from '../layouts/Base.astro';
-const email = 'adam@thomasavl.com';
+import ContactLink from '../components/ContactLink.astro';
+import { contact } from '../lib/contact';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <Base
   title="Contact"
-  description="Get in touch with Adam Manning for lighting design, programming, and associate work."
+  description="Get in touch with Adam Manning for lighting programming, board operation, and electrics work."
 >
   <section class="container contact">
     <p class="eyebrow">Contact</p>
     <h1>Let's talk about your show.</h1>
     <p class="lede prose">
-      Open for design, programming, and associate work across the U.S.
-      The fastest way to reach me is email.
+      Available for programming, board operation, and electrics work in
+      Southern California and on the road. Email is the fastest way to
+      reach me — include dates, venue, and a line about the production.
     </p>
 
-    <a class="email" href={`mailto:${email}`}>{email}</a>
+    <ContactLink kind="email" class="email" />
 
-    <p class="form-note prose">
-      A contact form is coming in the next update. For now, please use
-      the email link above — include show dates, venue, and a one-line
-      description of the project.
-    </p>
+    <dl class="details">
+      <div>
+        <dt>Phone</dt>
+        <dd><ContactLink kind="phone" /></dd>
+      </div>
+      <div>
+        <dt>LinkedIn</dt>
+        <dd><a href={contact.linkedin} rel="me">linkedin.com/in/adam-manning-lx</a></dd>
+      </div>
+      <div>
+        <dt>Résumé</dt>
+        <dd>
+          <a href={`${base}/resume/`}>View online</a>
+          <span class="sep">·</span>
+          <a href={`${base}/pdfs/resume/adam-manning-resume.pdf`} download>Download PDF</a>
+        </dd>
+      </div>
+      <div>
+        <dt>Based in</dt>
+        <dd>{contact.location}</dd>
+      </div>
+    </dl>
   </section>
 </Base>
 
@@ -31,7 +52,7 @@ const email = 'adam@thomasavl.com';
     font-size: 1.15rem;
     margin-bottom: 3rem;
   }
-  .email {
+  .contact :global(.email) {
     display: inline-block;
     font-family: var(--font-display);
     font-size: clamp(1.5rem, 4vw, 2.5rem);
@@ -40,13 +61,34 @@ const email = 'adam@thomasavl.com';
     padding-bottom: 0.2em;
     transition: border-color 120ms ease, color 120ms ease;
   }
-  .email:hover {
+  .contact :global(.email:hover) {
     color: var(--accent);
     border-bottom-color: var(--accent);
   }
-  .form-note {
-    margin-top: 3rem;
+
+  .details {
+    margin: 3.5rem 0 0;
+    max-width: 36rem;
+  }
+  .details div {
+    display: grid;
+    grid-template-columns: 7rem 1fr;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .details dt {
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
     color: var(--fg-muted);
-    font-size: 0.95rem;
+    padding-top: 0.15rem;
+  }
+  .details dd { margin: 0; }
+  .details a { text-decoration-color: var(--border-strong); }
+  .details a:hover { color: var(--accent); }
+  .sep { color: var(--fg-faint); margin-inline: 0.5rem; }
+  @media (max-width: 480px) {
+    .details div { grid-template-columns: 1fr; gap: 0.25rem; }
   }
 </style>
