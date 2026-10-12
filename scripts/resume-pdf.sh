@@ -21,5 +21,6 @@ done
 
 "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer \
   --virtual-time-budget=5000 \
+  --host-resolver-rules="MAP www.googletagmanager.com 127.0.0.1, MAP *.google-analytics.com 127.0.0.1" \
   --print-to-pdf="$OUT" "http://localhost:$PORT/portfolio/resume/" 2>/dev/null
 echo "wrote $OUT"
