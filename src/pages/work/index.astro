@@ -13,10 +13,19 @@ const sorted = all.sort(
 function slugOf(entry: (typeof sorted)[number]) {
   return entry.id.replace(/\/index$/, '');
 }
+
+const filters = [
+  { key: 'all', label: 'All' },
+  { key: 'theatre', label: 'Theatre' },
+  { key: 'concert', label: 'Concert' },
+  { key: 'corporate-event', label: 'Corporate / Event' },
+  { key: 'circus', label: 'Circus' },
+].filter((f) => f.key === 'all' || sorted.some((e) => e.data.discipline === f.key));
+const perPageOptions = [6, 12, 24, 0]; // 0 = all
 ---
 <Base
   title="Work"
-  description="Selected lighting design projects — concert, theatre, and corporate events."
+  description="Selected lighting projects — theatre, concerts, and corporate events."
 >
   <section class="container intro">
     <p class="eyebrow">Work</p>
@@ -28,8 +37,28 @@ function slugOf(entry: (typeof sorted)[number]) {
   </section>
 
   <section class="container grid-wrap">
+    <div class="controls" hidden>
+      <div class="filters" role="group" aria-label="Filter by discipline">
+        {filters.map((f) => (
+          <button type="button" data-filter={f.key} aria-pressed={f.key === 'all' ? 'true' : 'false'}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <label class="per-page">
+        Show
+        <select>
+          {perPageOptions.map((n) => (
+            <option value={n} selected={n === 6}>{n === 0 ? 'All' : n}</option>
+          ))}
+        </select>
+        per page
+      </label>
+    </div>
+
     <div class="grid">
       {sorted.map((entry) => (
+        <div class="cell" data-discipline={entry.data.discipline}>
         <ProjectCard
           href={`${base}/work/${slugOf(entry)}/`}
           title={entry.data.title}
@@ -38,10 +67,77 @@ function slugOf(entry: (typeof sorted)[number]) {
           cover={entry.data.cover}
           coverKind={entry.data.coverKind}
         />
+        </div>
       ))}
     </div>
+
+    <nav class="pager" aria-label="Project pages" hidden></nav>
   </section>
 </Base>
+
+<script>
+  // Progressive enhancement: without JS every project is listed.
+  const root = document.querySelector<HTMLElement>('.grid-wrap')!;
+  const controls = root.querySelector<HTMLElement>('.controls')!;
+  const cells = [...root.querySelectorAll<HTMLElement>('.cell')];
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+  const select = root.querySelector<HTMLSelectElement>('.per-page select')!;
+  const pager = root.querySelector<HTMLElement>('.pager')!;
+
+  const params = new URLSearchParams(location.search);
+  const valid = new Set(buttons.map((b) => b.dataset.filter));
+  const state = {
+    filter: valid.has(params.get('discipline') ?? '') ? params.get('discipline')! : 'all',
+    per: [...select.options].some((o) => o.value === params.get('per')) ? Number(params.get('per')) : 6,
+    page: Math.max(1, Number(params.get('page')) || 1),
+  };
+
+  function syncUrl() {
+    const q = new URLSearchParams();
+    if (state.filter !== 'all') q.set('discipline', state.filter);
+    if (state.per !== 6) q.set('per', String(state.per));
+    if (state.page > 1) q.set('page', String(state.page));
+    const s = q.toString();
+    history.replaceState(null, '', s ? `?${s}` : location.pathname);
+  }
+
+  function render(scroll = false) {
+    const matching = cells.filter((c) => state.filter === 'all' || c.dataset.discipline === state.filter);
+    const per = state.per || matching.length || 1;
+    const pages = Math.max(1, Math.ceil(matching.length / per));
+    state.page = Math.min(state.page, pages);
+    const start = (state.page - 1) * per;
+    const visible = new Set(matching.slice(start, start + per));
+    for (const c of cells) c.hidden = !visible.has(c);
+
+    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.filter === state.filter));
+    select.value = String(state.per);
+
+    pager.replaceChildren();
+    pager.hidden = pages <= 1;
+    const add = (label: string, page: number, opts: { current?: boolean; disabled?: boolean } = {}) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.disabled = !!opts.disabled;
+      if (opts.current) b.setAttribute('aria-current', 'page');
+      b.addEventListener('click', () => { state.page = page; render(true); });
+      pager.append(b);
+    };
+    add('← Prev', state.page - 1, { disabled: state.page === 1 });
+    for (let i = 1; i <= pages; i++) add(String(i), i, { current: i === state.page });
+    add('Next →', state.page + 1, { disabled: state.page === pages });
+
+    syncUrl();
+    if (scroll) root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  buttons.forEach((b) => b.addEventListener('click', () => { state.filter = b.dataset.filter!; state.page = 1; render(); }));
+  select.addEventListener('change', () => { state.per = Number(select.value); state.page = 1; render(); });
+
+  controls.hidden = false;
+  render();
+</script>
 
 <style>
   .intro {
@@ -54,7 +150,63 @@ function slugOf(entry: (typeof sorted)[number]) {
   }
   .grid-wrap {
     padding-bottom: 4rem;
+    scroll-margin-top: 5rem;
   }
+  .cell[hidden] { display: none; }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .controls[hidden], .pager[hidden] { display: none; }
+  .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .filters button, .pager button {
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+  .filters button:hover, .pager button:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--fg);
+  }
+  .filters button[aria-pressed='true'], .pager button[aria-current='page'] {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .per-page {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--fg-muted);
+  }
+  .per-page select {
+    font: inherit;
+    color: var(--fg);
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.5rem;
+  }
+
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 3rem;
+  }
+  .pager button:disabled { opacity: 0.35; cursor: default; }
   .grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
