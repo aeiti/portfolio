@@ -49,12 +49,14 @@ const analytics = import.meta.env.PROD;
     {analytics && (
       <>
         <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
-        <script is:inline define:vars={{ GA_ID }}>
+        {/* No define:vars here: it wraps the script in a function, which would
+            make gtag local and break the custom events below. */}
+        <script is:inline set:html={`
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
+          window.gtag = function gtag(){ dataLayer.push(arguments); };
           gtag('js', new Date());
-          gtag('config', GA_ID);
-        </script>
+          gtag('config', '${GA_ID}');
+        `}></script>
       </>
     )}
   </head>
@@ -75,9 +77,9 @@ const analytics = import.meta.env.PROD;
         if (!a) return;
         const href = a.getAttribute('href') ?? '';
         const page = location.pathname;
-        if (href.startsWith('mailto:')) track('contact_click', { method: 'email', page });
-        else if (href.startsWith('tel:')) track('contact_click', { method: 'phone', page });
-        else if (href.includes('linkedin.com')) track('contact_click', { method: 'linkedin', page });
+        if (href.startsWith('mailto:')) track('email_click', { page });
+        else if (href.startsWith('tel:')) track('phone_click', { page });
+        else if (href.includes('linkedin.com')) track('linkedin_click', { page });
         else if (href.endsWith('adam-manning-resume.pdf')) track('resume_download', { page });
         else if (/\/pdfs\/.+\.pdf$/.test(href)) track('document_download', { file: href.split('/').pop() ?? '', page });
       });
