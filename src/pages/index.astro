@@ -2,20 +2,17 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import { pickShowcase } from '../lib/showcase';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 const all = await getCollection('projects', ({ data }) => !data.draft);
-const sorted = all.sort(
-  (a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf(),
-);
+// 1 hero + a 3×2 grid
+const showcase = pickShowcase(all, 7);
+const hero = showcase.find((e) => e.data.coverKind === 'photo') ?? showcase[0];
+const rest = showcase.filter((e) => e !== hero);
 
-const featured = sorted.filter((e) => e.data.featured).slice(0, 6);
-const featuredOrRecent = featured.length > 0 ? featured : sorted.slice(0, 6);
-
-const hero = featuredOrRecent[0];
-
-function slugOf(entry: (typeof sorted)[number]) {
+function slugOf(entry: (typeof all)[number]) {
   return entry.id.replace(/\/index$/, '');
 }
 ---
@@ -53,7 +50,7 @@ function slugOf(entry: (typeof sorted)[number]) {
       <a href={`${base}/work/`}>All projects →</a>
     </header>
     <div class="grid">
-      {featuredOrRecent.slice(1).map((entry) => (
+      {rest.map((entry) => (
         <ProjectCard
           href={`${base}/work/${slugOf(entry)}/`}
           title={entry.data.title}
