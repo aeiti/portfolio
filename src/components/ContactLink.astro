@@ -1,0 +1,22 @@
+---
+import { contact, encode } from '../lib/contact';
+
+interface Props {
+  kind: 'email' | 'phone';
+  class?: string;
+}
+
+const { kind, class: className } = Astro.props;
+const value = kind === 'email' ? contact.email : contact.phone;
+const fallback = kind === 'email' ? 'Email (enable JavaScript to view)' : 'Phone (enable JavaScript to view)';
+---
+<a class:list={['contact-link', className]} data-kind={kind} data-v={encode(value)}>{fallback}</a>
+
+<script>
+  const decode = (s: string) => [...new TextDecoder().decode(Uint8Array.from(atob(s), (c) => c.charCodeAt(0)))].reverse().join('');
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('a.contact-link[data-v]')) {
+    const value = decode(a.dataset.v!);
+    a.textContent = value;
+    a.href = a.dataset.kind === 'email' ? `mailto:${value}` : `tel:+1${value.replace(/\D/g, '')}`;
+  }
+</script>

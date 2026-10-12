@@ -7,7 +7,7 @@ type Project = CollectionEntry<'projects'>;
 // and how recent it is. `featured: true` in frontmatter is a boost, not a
 // hard pin — use it to nudge a project up without maintaining a list.
 
-function roleScore(role: string): number {
+export function roleScore(role: string): number {
   const r = role.toLowerCase();
   if (/design|director|programmer|master electrician/.test(r)) return 3;
   if (/board/.test(r)) return 2;
