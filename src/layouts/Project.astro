@@ -18,13 +18,20 @@ interface Props {
   gallery: ImageMetadata[];
   documents: { label: string; file: string }[];
   consoleFilesAvailable: boolean;
+  console: 'eos' | 'element' | 'grandma2';
 }
 
 const {
   title, discipline, year, role, venue, client,
   credits, synopsis, cover, coverKind, gallery,
-  documents, consoleFilesAvailable,
+  documents, consoleFilesAvailable, console: showConsole,
 } = Astro.props;
+
+const consoleLabel: Record<Props['console'], string> = {
+  eos: 'ETC Eos',
+  element: 'ETC Element',
+  grandma2: 'grandMA2',
+};
 
 const disciplineLabel: Record<Props['discipline'], string> = {
   concert: 'Concert',
@@ -96,7 +103,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     {consoleFilesAvailable && (
       <section class="container">
         <p class="console-note">
-          ETC Eos / Element console show files for this production are available on request.
+          {consoleLabel[showConsole]} show files for this production are available on request.
         </p>
       </section>
     )}
