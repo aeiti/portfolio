@@ -132,7 +132,11 @@ const perPageOptions = [6, 12, 24, 0]; // 0 = all
     if (scroll) root.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  buttons.forEach((b) => b.addEventListener('click', () => { state.filter = b.dataset.filter!; state.page = 1; render(); }));
+  const track = (name: string, params: Record<string, string>) => (window as any).gtag?.('event', name, params);
+  buttons.forEach((b) => b.addEventListener('click', () => {
+    state.filter = b.dataset.filter!; state.page = 1; render();
+    track('work_filter', { discipline: state.filter });
+  }));
   select.addEventListener('change', () => { state.per = Number(select.value); state.page = 1; render(); });
 
   controls.hidden = false;
