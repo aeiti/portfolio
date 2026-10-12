@@ -16,6 +16,9 @@ const desc =
   'Adam Manning — lighting programmer, board operator, and electrician for theatre, concerts, and corporate events.';
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 const og = ogImage ? new URL(ogImage, Astro.site).toString() : null;
+// Google Analytics only on production builds, so local dev/preview isn't counted.
+const GA_ID = 'G-67DQPQMHRS';
+const analytics = import.meta.env.PROD;
 ---
 <!doctype html>
 <html lang="en">
@@ -42,10 +45,42 @@ const og = ogImage ? new URL(ogImage, Astro.site).toString() : null;
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap"
     />
+
+    {analytics && (
+      <>
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+        <script is:inline define:vars={{ GA_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', GA_ID);
+        </script>
+      </>
+    )}
   </head>
   <body>
     <header><Nav /></header>
     <main id="main"><slot /></main>
     <Footer />
+
+    <script>
+      // Custom GA events for the actions that matter. No-op when gtag isn't
+      // loaded (dev builds, blockers). Contact links get their real href at
+      // load, so read it at click time.
+      const track = (name: string, params: Record<string, string>) =>
+        (window as any).gtag?.('event', name, params);
+
+      document.addEventListener('click', (e) => {
+        const a = (e.target as Element).closest?.('a');
+        if (!a) return;
+        const href = a.getAttribute('href') ?? '';
+        const page = location.pathname;
+        if (href.startsWith('mailto:')) track('contact_click', { method: 'email', page });
+        else if (href.startsWith('tel:')) track('contact_click', { method: 'phone', page });
+        else if (href.includes('linkedin.com')) track('contact_click', { method: 'linkedin', page });
+        else if (href.endsWith('adam-manning-resume.pdf')) track('resume_download', { page });
+        else if (/\/pdfs\/.+\.pdf$/.test(href)) track('document_download', { file: href.split('/').pop() ?? '', page });
+      });
+    </script>
   </body>
 </html>
