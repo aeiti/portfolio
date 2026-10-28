@@ -10,7 +10,7 @@ type Project = CollectionEntry<'projects'>;
 export function roleScore(role: string): number {
   const r = role.toLowerCase();
   if (/design|director|programmer|master electrician/.test(r)) return 3;
-  if (/board/.test(r)) return 2;
+  if (/board|lx operator/.test(r)) return 2;
   return 1;
 }
 
