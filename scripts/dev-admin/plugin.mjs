@@ -3,7 +3,7 @@
 //
 // Launch:
 //   npm run dev
-//   open http://localhost:4321/__admin/        (also served at /portfolio/__admin/)
+//   open http://localhost:4321/portfolio/__admin/
 //
 // Everything here is `apply: 'serve'`, lives outside src/, and imports `yaml`
 // lazily inside configureServer — so none of it exists in `astro build`
@@ -659,8 +659,9 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
         sendJson(res, 404, { error: `no admin route ${req.method} ${url}` })
       })
 
-      // Run ahead of Astro's own middleware so the base-path guard does not
-      // 404 /__admin (which sits outside /portfolio/).
+      // Run ahead of Astro's own middleware. Browser (Accept: text/html)
+      // requests for the bare /__admin still hit Astro's base-path 404, so
+      // the advertised URL is the one under the site base.
       const stack = server.middlewares.stack
       const mine = stack.pop()
       stack.unshift(mine)
@@ -668,7 +669,7 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
       server.httpServer?.once('listening', () => {
         const addr = server.httpServer.address()
         const port = typeof addr === 'object' && addr ? addr.port : 4321
-        server.config.logger.info(`  content admin: http://localhost:${port}/__admin/`, { timestamp: false })
+        server.config.logger.info(`  content admin: http://localhost:${port}${base.replace(/\/$/, '')}/__admin/`, { timestamp: false })
       })
     },
   }

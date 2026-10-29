@@ -16,8 +16,7 @@ npm run preview  # serves the built site at /portfolio/
 
 ### Content admin (dev only)
 
-`npm run dev`, then open **http://localhost:4321/__admin/** (also served at
-`/portfolio/__admin/`). It edits every project's frontmatter and MDX body,
+`npm run dev`, then open **http://localhost:4321/portfolio/__admin/**. It edits every project's frontmatter and MDX body,
 uploads images into the project folder, flags content problems (Health tab),
 does find & replace across roles/credits/synopses, and previews the page
 with résumé/homepage badges. Saves rewrite only the keys you changed. The
