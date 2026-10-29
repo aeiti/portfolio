@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio admin</title>
+<style>
+:root {
+  --bg: #111316; --panel: #181b1f; --panel2: #1f2328; --line: #2c3238; --line2: #3a424a;
+  --text: #e6e8ea; --dim: #9aa3ab; --faint: #6b747c; --accent: #e0b04a; --accent2: #f3cc72;
+  --ok: #5cc28a; --err: #ef6b6b; --warn: #e6a23c; --info: #6aa8e8;
+  --add-bg: rgba(92,194,138,.13); --del-bg: rgba(239,107,107,.13);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --bar-h: 58px; --head-h: 48px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: var(--panel2); border: 1px solid var(--line2); border-radius: 6px; padding: 5px 10px; }
+button:hover:not(:disabled) { border-color: var(--dim); }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--accent); color: #1a1407; border-color: var(--accent); font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--accent2); }
+button.ghost { background: transparent; }
+button.danger { border-color: rgba(239,107,107,.5); color: var(--err); background: transparent; }
+button.danger.armed { background: var(--err); color: #fff; }
+button.small { padding: 2px 7px; font-size: 12px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type=text], input[type=number], input[type=date], input[type=search], select, textarea {
+  background: var(--bg); border: 1px solid var(--line2); border-radius: 6px; padding: 6px 8px; width: 100%; }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+label.f { display: block; font-size: 12px; color: var(--dim); margin: 0 0 4px; letter-spacing: .02em; }
+.hint { font-size: 12px; color: var(--faint); }
+kbd { font: 11px var(--mono); border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel2); }
+
+/* ---- header ---- */
+header { position: sticky; top: 0; z-index: 20; height: var(--head-h); display: flex; align-items: center; gap: 14px;
+  padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 15px; margin: 0; white-space: nowrap; }
+header h1 span { color: var(--accent); }
+.tabs { display: flex; gap: 2px; }
+.tabs button { background: transparent; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 12px 10px 11px; color: var(--dim); }
+.tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+.tabs .count { font-size: 11px; background: var(--warn); color: #1a1407; border-radius: 9px; padding: 0 6px; margin-left: 4px; }
+.branch { margin-left: auto; font: 12px var(--mono); color: var(--dim); white-space: nowrap; }
+.branch b.main { color: var(--err); }
+
+/* ---- layout ---- */
+main { height: calc(100vh - var(--head-h)); padding-bottom: var(--bar-h); }
+.view { display: none; height: 100%; }
+.view.active { display: grid; }
+#view-projects { grid-template-columns: 300px minmax(0, 1fr) minmax(360px, 42%); }
+#view-projects.no-preview { grid-template-columns: 300px minmax(0, 1fr); }
+#view-projects.no-preview #preview { display: none; }
+.pane { overflow: auto; border-right: 1px solid var(--line); min-width: 0; position: relative; }
+.pane-head { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 12px; }
+@media (max-width: 1180px) {
+  #view-projects { grid-template-columns: 270px 1fr; }
+  #preview { position: fixed; right: 0; top: var(--head-h); bottom: var(--bar-h); width: min(520px, 60vw); z-index: 15;
+    background: var(--bg); box-shadow: -8px 0 24px rgba(0,0,0,.5); }
+}
+
+/* ---- list ---- */
+#list-pane { background: var(--panel); }
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.filters .wide { grid-column: 1 / -1; }
+.filters label { font-size: 12px; color: var(--dim); display: flex; gap: 4px; align-items: center; }
+.list-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--faint); margin-top: 8px; }
+.bulk { margin-top: 8px; padding: 8px; border: 1px solid var(--line2); border-radius: 6px; background: var(--panel2); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.bulk select { width: auto; padding: 2px 4px; font-size: 12px; }
+.item { display: grid; grid-template-columns: 18px 1fr 10px; gap: 8px; align-items: start; padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.item:hover { background: var(--panel2); }
+.item.active { background: #2a2617; box-shadow: inset 3px 0 0 var(--accent); }
+.item input { margin: 3px 0 0; }
+.item .t { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .s { font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
+.dot.on { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.pill { display: inline-block; font-size: 10.5px; padding: 0 6px; border-radius: 9px; border: 1px solid var(--line2); color: var(--dim); margin-left: 4px; vertical-align: 1px; }
+.pill.draft { color: var(--warn); border-color: var(--warn); }
+.empty { padding: 28px 16px; color: var(--faint); text-align: center; }
+
+/* ---- form ---- */
+#form-pane .pane-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#form-pane .pane-head h2 { margin: 0; font-size: 16px; flex: 1; min-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#form-pane .pane-head .folder { font: 12px var(--mono); color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.form { padding: 14px 16px 40px; display: grid; gap: 16px; }
+.row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.section { border-top: 1px solid var(--line); padding-top: 14px; }
+.section > h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); display: flex; align-items: center; gap: 8px; }
+.section > h3 .hint { text-transform: none; letter-spacing: 0; }
+.checks { display: flex; gap: 18px; flex-wrap: wrap; }
+.checks label { display: flex; align-items: center; gap: 6px; }
+.field-changed > label.f::after { content: " •"; color: var(--accent); }
+.errors { border: 1px solid var(--err); background: var(--del-bg); border-radius: 6px; padding: 8px 12px; color: #ffd0d0; font-size: 13px; }
+.errors ul { margin: 4px 0 0; padding-left: 18px; }
+textarea.mono { font: 13px/1.5 var(--mono); }
+textarea.auto { overflow: hidden; resize: none; min-height: 80px; }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px; border: 1px solid var(--line2); border-radius: 6px; background: var(--bg); min-height: 40px; }
+.chips .sortable { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 2px; background: var(--panel2); border: 1px solid var(--line2); border-radius: 16px; padding: 2px 4px 2px 2px; }
+.chip .handle { border: none; background: transparent; padding: 0 4px; }
+.chip .x { border: none; background: transparent; padding: 0 5px; color: var(--dim); }
+.chip.rare { border-color: var(--warn); }
+.chips input { flex: 1; min-width: 160px; border: none; background: transparent; padding: 4px; }
+.joined { font: 12px var(--mono); color: var(--faint); margin-top: 4px; }
+
+/* sortable rows */
+.sortable { position: relative; }
+.srow { position: relative; display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.srow > .body { flex: 1; display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: center; min-width: 0; }
+.handle { cursor: grab; background: transparent; border: 1px solid transparent; color: var(--faint); padding: 4px 4px; line-height: 1; font-size: 15px; letter-spacing: -2px; user-select: none; }
+.handle:hover, .handle:focus-visible { color: var(--accent); border-color: var(--line2); }
+.srow.dragging, .chip.dragging, .thumb.dragging { opacity: .35; }
+.drop-before::before, .drop-after::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; background: var(--accent); border-radius: 2px; pointer-events: none; z-index: 3; }
+.drop-before::before { top: -4px; } .drop-after::after { bottom: -4px; }
+.hz .drop-before::before, .hz .drop-after::after { top: 0; bottom: 0; width: 3px; height: auto; left: auto; right: auto; }
+.hz .drop-before::before { left: -5px; } .hz .drop-after::after { right: -5px; }
+
+/* images */
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { position: relative; width: 112px; border: 1px solid var(--line2); border-radius: 6px; background: var(--bg); overflow: visible; }
+.thumb img { width: 100%; height: 76px; object-fit: cover; display: block; border-radius: 5px 5px 0 0; }
+.thumb .cap { font: 10.5px var(--mono); color: var(--dim); padding: 2px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thumb .ctl { display: flex; justify-content: space-between; padding: 0 2px 2px; }
+.thumb .ctl button { border: none; background: transparent; padding: 0 4px; }
+.thumb.pick { cursor: pointer; }
+.thumb.pick.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.thumb.none { display: grid; place-items: center; height: 100px; color: var(--faint); }
+.upload { display: inline-flex; align-items: center; gap: 6px; }
+.upload input { display: none; }
+
+/* preview */
+#preview { display: flex; flex-direction: column; background: var(--bg); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.badge { font-size: 12px; border-radius: 12px; padding: 2px 9px; border: 1px solid var(--line2); background: var(--panel2); white-space: nowrap; }
+.badge.yes { border-color: var(--ok); color: var(--ok); }
+.badge.no { border-color: var(--line2); color: var(--dim); }
+.badge.changed { box-shadow: 0 0 0 2px rgba(224,176,74,.5); }
+.why { font-size: 11.5px; color: var(--faint); margin-top: 4px; }
+#preview iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+#preview .note { padding: 30px; color: var(--faint); text-align: center; }
+
+/* health / replace */
+.page { overflow: auto; padding: 0 0 40px; }
+.page-inner { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+.page h2 { font-size: 16px; margin: 0; }
+.group { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.group > h3 { margin: 0; padding: 8px 12px; background: var(--panel); font-size: 13px; display: flex; gap: 8px; align-items: center; }
+.group > h3 .n { margin-left: auto; color: var(--faint); font-weight: 400; }
+.warn { display: flex; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+.warn a { color: var(--accent); cursor: pointer; text-decoration: none; white-space: nowrap; }
+.warn a:hover { text-decoration: underline; }
+.warn .msg { flex: 1; }
+.lvl { font-size: 11px; border-radius: 4px; padding: 0 5px; }
+.lvl.warn-l { background: var(--warn); color: #1a1407; } .lvl.info-l { background: var(--info); color: #08121c; }
+.match { display: grid; grid-template-columns: 22px 220px 1fr; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--line); align-items: baseline; font-size: 13px; }
+.match .ctx { font-family: var(--mono); font-size: 12px; word-break: break-word; }
+.match del { background: var(--del-bg); color: #ffb3b3; text-decoration: line-through; }
+.match ins { background: var(--add-bg); color: #b8f0cf; text-decoration: none; }
+
+/* floating action bar */
+#bar { position: fixed; left: 0; right: 0; bottom: 0; height: var(--bar-h); z-index: 40; display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; background: rgba(24,27,31,.96); backdrop-filter: blur(6px); border-top: 1px solid var(--line2); box-shadow: 0 -6px 18px rgba(0,0,0,.35); }
+#bar .count { font-weight: 600; }
+#bar .count.clean { color: var(--faint); font-weight: 400; }
+#bar .count .pdot { display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-right: 6px; }
+#bar .spacer { flex: 1; }
+
+/* modal */
+.modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 60; display: grid; place-items: center; padding: 20px; }
+.modal { background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; width: min(1100px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.modal.narrow { width: min(520px, 100%); }
+.modal > .mh { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; }
+.modal > .mh h2 { margin: 0; font-size: 16px; flex: 1; }
+.modal > .mb { padding: 14px 16px; overflow: auto; display: grid; gap: 14px; }
+.modal > .mf { padding: 10px 16px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
+.ship-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1000px) { .ship-grid { grid-template-columns: 1fr; } }
+pre.diff { margin: 0; font: 12px/1.45 var(--mono); background: var(--bg); padding: 8px 0; overflow: auto; max-height: 420px; }
+pre.diff .dl { display: block; padding: 0 10px; white-space: pre-wrap; word-break: break-word; }
+pre.diff .add { background: var(--add-bg); color: #b8f0cf; }
+pre.diff .del { background: var(--del-bg); color: #ffc4c4; }
+pre.diff .hunk { color: var(--info); }
+pre.diff .meta { color: var(--faint); }
+details.file { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+details.file + details.file { margin-top: 8px; }
+details.file summary { padding: 6px 10px; background: var(--panel2); font: 12px var(--mono); cursor: pointer; }
+.st { display: inline-block; min-width: 22px; font-weight: 700; }
+.st-M { color: var(--warn); } .st-A, .st-\?\? { color: var(--ok); } .st-D { color: var(--err); }
+.alert { border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+.alert.err { border: 1px solid var(--err); background: var(--del-bg); }
+.alert.warn { border: 1px solid var(--warn); background: rgba(230,162,60,.1); }
+.alert.ok { border: 1px solid var(--ok); background: var(--add-bg); }
+.alert ul { margin: 4px 0 0; padding-left: 18px; font-family: var(--mono); font-size: 12px; }
+pre.cmds { margin: 0; font: 12px/1.6 var(--mono); background: var(--bg); padding: 10px; border-radius: 6px; white-space: pre-wrap; word-break: break-word; border: 1px solid var(--line); }
+.radio { display: flex; gap: 6px; align-items: baseline; margin: 3px 0; }
+.field-err { color: var(--err); font-size: 12px; margin-top: 3px; }
+.field-ok { color: var(--ok); font-size: 12px; margin-top: 3px; }
+.help-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+
+/* toasts */
+#toasts { position: fixed; right: 16px; bottom: calc(var(--bar-h) + 12px); z-index: 80; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.toast { background: var(--panel2); border: 1px solid var(--line2); border-left: 4px solid var(--info); border-radius: 6px; padding: 8px 12px; max-width: 420px; box-shadow: 0 6px 18px rgba(0,0,0,.4); font-size: 13px; animation: tin .15s ease-out; }
+.toast.ok { border-left-color: var(--ok); } .toast.err { border-left-color: var(--err); } .toast.warn { border-left-color: var(--warn); }
+@keyframes tin { from { transform: translateY(6px); opacity: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Portfolio <span>admin</span></h1>
+  <nav class="tabs" role="tablist">
+    <button data-tab="projects" class="active">Projects</button>
+    <button data-tab="health">Health <span class="count" id="health-count" hidden></span></button>
+    <button data-tab="replace">Find &amp; replace</button>
+  </nav>
+  <button class="small" id="new-btn" title="New project">+ New project</button>
+  <button class="small ghost" id="help-btn" title="Keyboard shortcuts (?)">?</button>
+  <div class="branch" id="branch"></div>
+</header>
+
+<main>
+  <section class="view active" id="view-projects">
+    <div class="pane" id="list-pane">
+      <div class="pane-head">
+        <div class="filters">
+          <input type="search" id="f-q" class="wide" placeholder="Search title, venue, role…  ( / )" aria-label="Search">
+          <select id="f-disc" aria-label="Discipline"><option value="">All disciplines</option></select>
+          <select id="f-year" aria-label="Year"><option value="">All years</option></select>
+          <input type="text" id="f-role" placeholder="Role contains…" aria-label="Role contains">
+          <select id="f-sort" aria-label="Sort">
+            <option value="year-desc">Year ↓ (newest)</option>
+            <option value="year-asc">Year ↑ (oldest)</option>
+            <option value="title-asc">Title A–Z</option>
+            <option value="title-desc">Title Z–A</option>
+          </select>
+          <label class="wide"><input type="checkbox" id="f-dirty"> Unsaved only</label>
+        </div>
+        <div class="list-meta"><span id="list-count"></span><span><a href="#" id="sel-all" class="hint">select shown</a></span></div>
+        <div id="bulk" class="bulk" hidden></div>
+      </div>
+      <div id="list"></div>
+    </div>
+    <div class="pane" id="form-pane"><div class="empty">Loading…</div></div>
+    <div class="pane" id="preview"></div>
+  </section>
+
+  <section class="view page" id="view-health"></section>
+  <section class="view page" id="view-replace"></section>
+</main>
+
+<div id="bar" role="toolbar" aria-label="Unsaved changes">
+  <span class="count clean" id="bar-count">No unsaved changes</span>
+  <span class="hint" id="bar-detail"></span>
+  <span class="spacer"></span>
+  <button id="bar-discard" class="danger" disabled title="Discard every unsaved edit (click twice)">Discard</button>
+  <button id="bar-preview" title="Toggle live preview">Preview</button>
+  <button id="bar-ship" title="Review the diff, commit, push and open a PR">Review &amp; Ship</button>
+  <button id="bar-save" class="primary" disabled title="Save all (⌘S / Ctrl+S)">Save <kbd>⌘S</kbd></button>
+</div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict'
+// ===========================================================================
+// Portfolio dev admin — vanilla JS, no build. Served by plugin.mjs.
+//
+// State model: `saved[folder]` is the project as last loaded/saved from disk;
+// `cur[folder]` is the working copy every input edits in place. A project is
+// dirty when the two differ — edits survive switching projects and are only
+// written by Save. Inputs mutate `cur` and call markDirty(), which updates
+// dots/counts/badges WITHOUT re-rendering the form, so focus is never lost.
+// ===========================================================================
+
+const ADMIN = location.pathname.replace(/\/[^/]*$/, '')   // "/__admin" or "/portfolio/__admin"
+const $ = (s, r = document) => r.querySelector(s)
+
+let meta = { base: '/', enums: {}, defaults: {}, keys: [] }
+let saved = {}       // folder -> { data, body, hash, images }
+let cur = {}         // folder -> { data, body }
+let errorsBy = {}    // folder -> [server validation errors]
+let order = []       // folder list
+let selected = null
+const multi = new Set()
+let showPreview = window.innerWidth > 1180
+let scores = null    // last /api/score response for `selected`
+let savedScores = {} // folder -> score at load/save time, to flag badge changes
+let roleScores = {}  // folder -> roleScore (from server, for health)
+
+// ---- utilities -------------------------------------------------------------
+
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag)
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === undefined || v === null || v === false) continue
+    if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v)
+    else if (k === 'class') n.className = v
+    else if (k === 'style') n.style.cssText = v
+    else if (k === 'value') n.value = v
+    else if (k === 'checked') n.checked = !!v
+    else if (k === 'dataset') Object.assign(n.dataset, v)
+    else n.setAttribute(k, v === true ? '' : v)
+  }
+  for (const c of kids.flat(Infinity)) if (c !== null && c !== undefined && c !== false) n.append(c.nodeType ? c : String(c))
+  return n
+}
+const clone = (v) => v === undefined ? undefined : JSON.parse(JSON.stringify(v))
+function canon(v) {
+  if (Array.isArray(v)) return v.map(canon)
+  if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v).sort()) if (v[k] !== undefined) o[k] = canon(v[k]); return o }
+  return v
+}
+const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b))
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms) } }
+const typing = (e) => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable
+const kebab = (s) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+const rolesOf = (role) => String(role || '').split(' / ').map((s) => s.trim()).filter(Boolean)
+const fileUrl = (folder, p) => `${ADMIN}/api/file?folder=${encodeURIComponent(folder)}&path=${encodeURIComponent(p)}`
+
+async function api(method, url, body) {
+  const res = await fetch(ADMIN + url, {
+    method, headers: body !== undefined ? { 'content-type': 'application/json' } : {},
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  let json = {}
+  try { json = await res.json() } catch { /* empty */ }
+  if (!res.ok) throw Object.assign(new Error(json.error || `${res.status} ${res.statusText}`), json, { status: res.status })
+  return json
+}
+
+function toast(msg, kind = 'info', ms = 4500) {
+  const t = el('div', { class: `toast ${kind}`, role: kind === 'err' ? 'alert' : 'status' }, msg)
+  $('#toasts').append(t)
+  setTimeout(() => t.remove(), kind === 'err' ? ms * 2 : ms)
+}
+
+// Two-click arm instead of confirm(): embedded browsers suppress native
+// dialogs, which makes a confirm()-gated button look dead.
+function armed(label, armedLabel, onFire, cls = 'danger') {
+  let on = false, timer
+  const b = el('button', { class: cls, type: 'button', onclick: () => {
+    if (!on) {
+      on = true; b.classList.add('armed'); b.textContent = armedLabel
+      timer = setTimeout(() => { on = false; b.classList.remove('armed'); b.textContent = label }, 3500)
+      return
+    }
+    clearTimeout(timer); on = false; b.classList.remove('armed'); b.textContent = label
+    onFire()
+  } }, label)
+  return b
+}
+
+// ---- dirty tracking --------------------------------------------------------
+
+// A default-valued key the file never had (e.g. `credits: []` added then
+// emptied again) is not a change — drop it so the save leaves the file alone.
+function normalize(folder) {
+  const d = cur[folder].data, s = saved[folder].data
+  for (const [k, def] of Object.entries(meta.defaults)) {
+    if (!(k in s) && k in d && same(d[k], def)) delete d[k]
+  }
+  for (const k of ['venue', 'client']) if (!(k in s) && d[k] === '') delete d[k]
+  for (const k of Object.keys(d)) if (d[k] === undefined) delete d[k]
+}
+function changedKeys(folder) {
+  if (!cur[folder] || !saved[folder]) return []
+  // Editors create empty lists (gallery: []) to bind to; those aren't edits.
+  normalize(folder)
+  const a = cur[folder].data, b = saved[folder].data
+  const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => !same(a[k], b[k]))
+  if (cur[folder].body !== saved[folder].body) keys.push('body')
+  return keys
+}
+const isDirty = (folder) => changedKeys(folder).length > 0
+const dirtyFolders = () => order.filter(isDirty)
+
+const refreshScores = debounce(() => loadScores(), 250)
+function markDirty(folder = selected) {
+  normalize(folder)
+  updateBar()
+  updateListDots()
+  updateFieldMarks()
+  updateHealthCount()
+  if (folder === selected) refreshScores()
+}
+
+function updateBar() {
+  const folders = dirtyFolders()
+  const n = folders.reduce((s, f) => s + changedKeys(f).length, 0)
+  const c = $('#bar-count')
+  c.className = 'count' + (n ? '' : ' clean')
+  c.replaceChildren(...(n ? [el('span', { class: 'pdot' }), `${n} unsaved change${n === 1 ? '' : 's'}`] : ['No unsaved changes']))
+  $('#bar-detail').textContent = n ? `in ${folders.length} project${folders.length === 1 ? '' : 's'}: ${folders.map((f) => cur[f].data.title).slice(0, 3).join(', ')}${folders.length > 3 ? '…' : ''}` : ''
+  $('#bar-save').disabled = !n
+  $('#bar-discard').disabled = !n
+  $('#bar-preview').classList.toggle('primary', false)
+  $('#bar-preview').textContent = showPreview ? 'Hide preview' : 'Preview'
+  document.title = (n ? '● ' : '') + 'Portfolio admin'
+}
+function updateListDots() {
+  for (const it of document.querySelectorAll('#list .item')) {
+    it.querySelector('.dot').classList.toggle('on', isDirty(it.dataset.folder))
+  }
+}
+function updateFieldMarks() {
+  if (!selected) return
+  const ch = new Set(changedKeys(selected))
+  for (const f of document.querySelectorAll('#form-pane [data-key]')) f.classList.toggle('field-changed', ch.has(f.dataset.key))
+  const t = $('#form-pane .pane-head h2')
+  if (t) t.textContent = cur[selected].data.title || '(untitled)'
+  const rv = $('#revert-proj')
+  if (rv) rv.disabled = !ch.size
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (dirtyFolders().length) { e.preventDefault(); e.returnValue = '' }
+})
+
+// ---- load ------------------------------------------------------------------
+
+function adopt(p) {
+  saved[p.folder] = { data: clone(p.data), body: p.body, hash: p.hash, images: p.images || [] }
+  cur[p.folder] = { data: clone(p.data), body: p.body }
+  delete errorsBy[p.folder]
+}
+
+async function load() {
+  let res
+  try { res = await api('GET', '/api/projects') } catch (e) {
+    $('#form-pane').replaceChildren(el('div', { class: 'empty' }, `Could not load projects: ${e.message}`))
+    return
+  }
+  meta = res
+  $('#branch').replaceChildren('on ', el('b', { class: /^(main|master)$/.test(res.branch) ? 'main' : '' }, res.branch || '?'))
+  const broken = res.projects.filter((p) => p.error)
+  for (const b of broken) toast(`${b.folder}: ${b.error} — skipped`, 'err')
+  for (const p of res.projects.filter((p) => !p.error)) adopt(p)
+  order = res.projects.filter((p) => !p.error).map((p) => p.folder)
+  const disc = $('#f-disc')
+  for (const d of meta.enums.discipline) disc.append(el('option', { value: d }, d))
+  fillYearFilter()
+  const fromHash = decodeURIComponent(location.hash.slice(1))
+  selected = order.includes(fromHash) ? fromHash : null
+  renderList()
+  if (!selected) selected = visibleFolders()[0] ?? null
+  renderList(); renderForm(); renderPreview(); updateBar(); loadScores(true)
+}
+
+function fillYearFilter() {
+  const sel = $('#f-year'), v = sel.value
+  const years = [...new Set(order.map((f) => cur[f].data.year))].sort((a, b) => b - a)
+  sel.replaceChildren(el('option', { value: '' }, 'All years'), ...years.map((y) => el('option', { value: y }, y)))
+  sel.value = v
+}
+
+// ---- list pane ---------------------------------------------------------------
+
+function visibleFolders() {
+  const q = $('#f-q').value.trim().toLowerCase()
+  const disc = $('#f-disc').value, year = $('#f-year').value
+  const role = $('#f-role').value.trim().toLowerCase()
+  const dirtyOnly = $('#f-dirty').checked
+  const [key, dir] = $('#f-sort').value.split('-')
+  return order.filter((f) => {
+    const d = cur[f].data
+    if (disc && d.discipline !== disc) return false
+    if (year && String(d.year) !== year) return false
+    if (role && !String(d.role || '').toLowerCase().includes(role)) return false
+    if (dirtyOnly && !isDirty(f)) return false
+    if (q && ![d.title, f, d.venue, d.client, d.role].some((x) => String(x || '').toLowerCase().includes(q))) return false
+    return true
+  }).sort((a, b) => {
+    const A = cur[a].data, B = cur[b].data
+    const c = key === 'year'
+      ? (A.year - B.year) || String(A.publishedAt).localeCompare(String(B.publishedAt))
+      : String(A.title).localeCompare(String(B.title), undefined, { sensitivity: 'base' })
+    return dir === 'asc' ? c : -c
+  })
+}
+
+function renderList() {
+  const vis = visibleFolders()
+  $('#list-count').textContent = `${vis.length} of ${order.length} projects`
+  if (!vis.length) {
+    $('#list').replaceChildren(el('div', { class: 'empty' }, order.length ? 'No projects match these filters.' : 'No projects yet — create one with “+ New project”.'))
+  } else {
+    $('#list').replaceChildren(...vis.map((f) => {
+      const d = cur[f].data
+      const cb = el('input', { type: 'checkbox', checked: multi.has(f), 'aria-label': `Select ${d.title}`,
+        onclick: (e) => { e.stopPropagation(); cb.checked ? multi.add(f) : multi.delete(f); renderBulk() } })
+      return el('div', { class: 'item' + (f === selected ? ' active' : ''), dataset: { folder: f }, tabindex: 0,
+        onclick: () => select(f), onkeydown: (e) => { if (e.key === 'Enter') select(f) } },
+        cb,
+        el('div', { style: 'min-width:0' },
+          el('div', { class: 't' }, d.title || '(untitled)', d.draft ? el('span', { class: 'pill draft' }, 'draft') : null),
+          el('div', { class: 's' }, `${d.year} · ${d.discipline} · ${d.role || ''}`)),
+        el('span', { class: 'dot' + (isDirty(f) ? ' on' : ''), title: isDirty(f) ? 'Unsaved changes' : '' }))
+    }))
+  }
+  renderBulk()
+}
+
+function renderBulk() {
+  const box = $('#bulk')
+  for (const f of [...multi]) if (!order.includes(f)) multi.delete(f)
+  if (!multi.size) { box.hidden = true; return }
+  box.hidden = false
+  const sel = [...multi]
+  const apply = (fn, what) => { for (const f of sel) { fn(cur[f].data); markDirty(f) } renderList(); renderForm(); toast(`${what} on ${sel.length} project(s) — unsaved`, 'info') }
+  const disc = el('select', { 'aria-label': 'Set discipline', onchange: () => { if (disc.value) apply((d) => { d.discipline = disc.value }, `discipline → ${disc.value}`) } },
+    el('option', { value: '' }, 'discipline…'), ...meta.enums.discipline.map((d) => el('option', { value: d }, d)))
+  box.replaceChildren(
+    el('b', {}, `${sel.length} selected`),
+    el('button', { class: 'small', onclick: () => apply((d) => { d.draft = true }, 'draft on') }, 'Draft on'),
+    el('button', { class: 'small', onclick: () => apply((d) => { d.draft = false }, 'draft off') }, 'Draft off'),
+    el('button', { class: 'small', onclick: () => apply((d) => { d.featured = true }, 'featured on') }, 'Feature'),
+    el('button', { class: 'small', onclick: () => apply((d) => { d.featured = false }, 'featured off') }, 'Unfeature'),
+    disc,
+    el('button', { class: 'small', disabled: !sel.some(isDirty), onclick: () => saveFolders(sel.filter(isDirty)) }, 'Save these'),
+    el('button', { class: 'small ghost', onclick: () => { multi.clear(); renderList() } }, 'Clear'))
+}
+
+for (const id of ['#f-q', '#f-role']) $(id).addEventListener('input', () => renderList())
+for (const id of ['#f-disc', '#f-year', '#f-sort', '#f-dirty']) $(id).addEventListener('change', () => renderList())
+$('#sel-all').addEventListener('click', (e) => {
+  e.preventDefault()
+  const vis = visibleFolders()
+  if (vis.every((f) => multi.has(f))) vis.forEach((f) => multi.delete(f)); else vis.forEach((f) => multi.add(f))
+  renderList()
+})
+
+function select(folder) {
+  if (folder === selected) return
+  selected = folder
+  history.replaceState(null, '', '#' + encodeURIComponent(folder))
+  scores = null
+  for (const it of document.querySelectorAll('#list .item')) it.classList.toggle('active', it.dataset.folder === folder)
+  renderForm(); renderPreview(); loadScores()
+}
+
+// ---- reorderable lists (native DnD + Alt+↑/↓) --------------------------------
+
+// `items` is the live array; rows are re-drawn after a move. Dragging starts
+// only from the handle so text inside rows stays selectable.
+function sortable(items, renderRow, onChange, { horizontal = false, rowClass = 'srow', label = 'item' } = {}) {
+  const wrap = el('div', { class: 'sortable' + (horizontal ? ' hz' : '') })
+  let from = null
+  const clear = () => wrap.querySelectorAll('.drop-before,.drop-after').forEach((n) => n.classList.remove('drop-before', 'drop-after'))
+  const move = (a, b) => {
+    if (b < 0 || b >= items.length || a === b) return
+    const [x] = items.splice(a, 1); items.splice(b, 0, x)
+    onChange(); draw(b)
+  }
+  const draw = (focusIdx) => {
+    wrap.replaceChildren(...items.map((it, i) => {
+      const handle = el('button', { type: 'button', class: 'handle', title: 'Drag to reorder · Alt+↑/↓', 'aria-label': `Reorder ${label} ${i + 1} of ${items.length} (Alt+Up/Down)` }, '⋮⋮')
+      const row = el('div', { class: rowClass, dataset: { i } }, handle,
+        renderRow(it, i, () => { items.splice(i, 1); onChange(); draw() }))
+      handle.addEventListener('mousedown', () => { row.draggable = true })
+      handle.addEventListener('mouseup', () => { row.draggable = false })
+      handle.addEventListener('keydown', (e) => {
+        if (!e.altKey) return
+        const back = e.key === 'ArrowUp' || (horizontal && e.key === 'ArrowLeft')
+        const fwd = e.key === 'ArrowDown' || (horizontal && e.key === 'ArrowRight')
+        if (back || fwd) { e.preventDefault(); move(i, i + (back ? -1 : 1)) }
+      })
+      row.addEventListener('dragstart', (e) => {
+        from = i; e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', String(i))
+        requestAnimationFrame(() => row.classList.add('dragging'))
+      })
+      row.addEventListener('dragend', () => { row.draggable = false; row.classList.remove('dragging'); from = null; clear() })
+      row.addEventListener('dragover', (e) => {
+        if (from === null) return
+        e.preventDefault(); e.dataTransfer.dropEffect = 'move'
+        const r = row.getBoundingClientRect()
+        const after = horizontal ? e.clientX > r.left + r.width / 2 : e.clientY > r.top + r.height / 2
+        clear(); row.classList.add(after ? 'drop-after' : 'drop-before')
+      })
+      row.addEventListener('drop', (e) => {
+        if (from === null) return
+        e.preventDefault()
+        const after = row.classList.contains('drop-after')
+        let to = i + (after ? 1 : 0)
+        if (from < to) to -= 1
+        const f = from; from = null; clear()
+        move(f, to)
+      })
+      return row
+    }))
+    if (focusIdx !== undefined) wrap.children[focusIdx]?.querySelector('.handle')?.focus()
+  }
+  draw()
+  return wrap
+}
+
+// ---- form ------------------------------------------------------------------------
+
+function field(label, key, input, hint) {
+  return el('div', { dataset: { key } }, el('label', { class: 'f' }, label), input, hint ? el('div', { class: 'hint' }, hint) : null)
+}
+function textInput(d, key, { placeholder, onAfter } = {}) {
+  return el('input', { type: 'text', value: d[key] ?? '', placeholder,
+    oninput: (e) => { d[key] = e.target.value; markDirty(); onAfter?.() } })
+}
+function autoGrow(ta) {
+  const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 2 + 'px' }
+  ta.addEventListener('input', fit)
+  requestAnimationFrame(fit)
+  return ta
+}
+function enumSelect(d, key) {
+  const def = meta.defaults[key]
+  return el('select', { onchange: (e) => { d[key] = e.target.value; markDirty() } },
+    ...meta.enums[key].map((v) => { const o = el('option', { value: v }, v + (v === def ? ' (default)' : '')); if ((d[key] ?? def) === v) o.selected = true; return o }))
+}
+function check(d, key, label) {
+  return el('label', { dataset: { key } }, el('input', { type: 'checkbox', checked: d[key] ?? meta.defaults[key],
+    onchange: (e) => { d[key] = e.target.checked; markDirty(); if (key === 'draft') { renderList(); renderPreview() } } }), label)
+}
+
+function renderForm() {
+  const pane = $('#form-pane')
+  if (!selected || !cur[selected]) {
+    pane.replaceChildren(el('div', { class: 'empty' }, order.length ? 'Select a project on the left.' : 'No projects yet.'))
+    return
+  }
+  const f = selected, d = cur[f].data
+  const s = saved[f]
+
+  const del = armed('Delete', 'Click again: delete folder', async () => {
+    try {
+      await api('DELETE', `/api/project?folder=${encodeURIComponent(f)}&hash=${s.hash}`)
+      order = order.filter((x) => x !== f); delete cur[f]; delete saved[f]; multi.delete(f)
+      selected = visibleFolders()[0] ?? null
+      toast(`Deleted ${f} — it will be part of the next Ship`, 'ok')
+      renderList(); renderForm(); renderPreview(); updateBar(); updateHealthCount()
+    } catch (e) { toast(`Delete failed: ${e.message}`, 'err') }
+  })
+  del.title = 'Deletes the project folder from disk (click twice)'
+
+  const head = el('div', { class: 'pane-head' },
+    el('div', { style: 'flex:1;min-width:0' }, el('h2', {}, d.title || '(untitled)'), el('div', { class: 'folder' }, `${meta.projectsDir}/${f}/index.mdx`)),
+    el('button', { class: 'small', id: 'revert-proj', disabled: !isDirty(f), title: 'Discard this project\'s unsaved edits',
+      onclick: () => { cur[f] = { data: clone(s.data), body: s.body }; delete errorsBy[f]; markDirty(f); renderForm(); renderList(); toast('Edits discarded', 'info') } }, 'Revert edits'),
+    el('button', { class: 'small', title: 'Re-read this file from disk (discards edits)', onclick: () => reloadFromDisk(f) }, '↻ Reload'),
+    del)
+
+  const errs = errorsBy[f]
+  const form = el('div', { class: 'form' },
+    errs?.length ? el('div', { class: 'errors', role: 'alert' }, el('b', {}, 'Not saved — fix these:'), el('ul', {}, ...errs.map((x) => el('li', {}, x)))) : null,
+    field('Title', 'title', textInput(d, 'title', { onAfter: () => renderListDebounced() })),
+    el('div', { class: 'row' },
+      field('Discipline', 'discipline', enumSelect(d, 'discipline')),
+      field('Year', 'year', el('input', { type: 'number', min: 1990, max: 2100, step: 1, value: d.year ?? '',
+        oninput: (e) => { const v = e.target.valueAsNumber; d.year = Number.isFinite(v) ? v : undefined; markDirty() } })),
+      field('Published', 'publishedAt', el('input', { type: 'date', value: d.publishedAt ?? '',
+        oninput: (e) => { d.publishedAt = e.target.value || undefined; markDirty() } }), 'Sort order on /work; résumé recency')),
+    field('Role', 'role', roleChips(d), 'Multiple roles are joined with " / ". Drag chips to reorder; the first one leads.'),
+    el('div', { class: 'row' },
+      field('Venue', 'venue', textInput(d, 'venue')),
+      field('Client', 'client', textInput(d, 'client'))),
+    field('Synopsis', 'synopsis', autoGrow(el('textarea', { class: 'auto', rows: 3, value: d.synopsis ?? '',
+      oninput: (e) => { d.synopsis = e.target.value; markDirty() } }))),
+    el('div', { class: 'section' }, el('h3', {}, 'Flags'),
+      el('div', { class: 'checks' }, check(d, 'featured', 'Featured (homepage boost)'), check(d, 'draft', 'Draft (hidden)'),
+        check(d, 'consoleFilesAvailable', 'Console files available')),
+      el('div', { class: 'row', style: 'margin-top:10px' },
+        field('Console', 'console', enumSelect(d, 'console')),
+        field('Cover kind', 'coverKind', enumSelect(d, 'coverKind')))),
+    el('div', { class: 'section', dataset: { key: 'cover' } }, el('h3', {}, 'Cover', el('span', { class: 'hint' }, 'click to choose · coverless projects get a title card')), coverPicker(f)),
+    el('div', { class: 'section', dataset: { key: 'gallery' } }, el('h3', {}, 'Gallery', el('span', { class: 'hint' }, 'drag to reorder')), galleryEditor(f)),
+    el('div', { class: 'section', dataset: { key: 'credits' } }, el('h3', {}, 'Credits'), creditsEditor(d)),
+    el('div', { class: 'section', dataset: { key: 'documents' } }, el('h3', {}, 'Documents', el('span', { class: 'hint' }, 'file is the site URL path, e.g. /pdfs/<slug>/plot.pdf')), documentsEditor(d)),
+    el('div', { class: 'section', dataset: { key: 'body' } }, el('h3', {}, 'Body (MDX)'),
+      autoGrow(el('textarea', { class: 'mono auto', spellcheck: 'false', value: cur[f].body,
+        oninput: (e) => { cur[f].body = e.target.value; markDirty() } }))),
+  )
+  const scrollTop = pane.scrollTop
+  pane.replaceChildren(head, form)
+  pane.scrollTop = scrollTop
+  updateFieldMarks()
+}
+const renderListDebounced = debounce(() => renderList(), 300)
+
+// Role chips -------------------------------------------------------------------
+function roleVocab() {
+  const n = new Map()
+  for (const f of order) for (const r of rolesOf(cur[f].data.role)) n.set(r, (n.get(r) || 0) + 1)
+  return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+}
+function roleChips(d) {
+  const box = el('div')
+  const draw = (focusInput) => {
+    const roles = rolesOf(d.role)
+    const vocab = roleVocab()
+    const counts = new Map(vocab)
+    const commit = () => { d.role = roles.join(' / '); markDirty(); joined.textContent = d.role ? `role: ${d.role}` : 'role: (empty — required)' }
+    const list = sortable(roles, (r, i, remove) => el('span', { class: 'chip-body', style: 'display:inline-flex;align-items:center' },
+      el('span', { style: 'padding:0 4px' }, r),
+      el('button', { type: 'button', class: 'x', title: `Remove ${r}`, 'aria-label': `Remove ${r}`, onclick: () => { remove(); draw() } }, '×')),
+      () => commit(), { horizontal: true, rowClass: 'chip', label: 'role' })
+    for (const c of list.children) if ((counts.get(roles[+c.dataset.i]) || 0) <= 1) c.classList.add('rare')
+    const dl = el('datalist', { id: 'role-vocab' }, ...vocab.filter(([r]) => !roles.includes(r)).map(([r, c]) => el('option', { value: r }, `${c} project${c === 1 ? '' : 's'}`)))
+    const input = el('input', { type: 'text', list: 'role-vocab', placeholder: roles.length ? 'Add role…' : 'Add a role (type or pick)…', 'aria-label': 'Add role',
+      onkeydown: (e) => {
+        if ((e.key === 'Enter' || e.key === 'Tab' && input.value.trim()) ) {
+          e.preventDefault()
+          add(input.value)
+        } else if (e.key === 'Backspace' && !input.value && roles.length) { roles.pop(); commit(); draw(true) }
+      },
+      onchange: () => { if (vocab.some(([r]) => r === input.value.trim())) add(input.value) } })
+    const add = (v) => {
+      const parts = rolesOf(v.replace(/\s*\/\s*/g, ' / '))
+      if (!parts.length) return
+      // Match vocabulary case-insensitively so "lighting programmer" reuses the canonical spelling.
+      for (const p of parts) {
+        const canonical = vocab.find(([r]) => r.toLowerCase() === p.toLowerCase())?.[0] ?? p
+        if (!roles.includes(canonical)) roles.push(canonical)
+      }
+      commit(); draw(true)
+    }
+    const joined = el('div', { class: 'joined' }, d.role ? `role: ${d.role}` : 'role: (empty — required)')
+    box.replaceChildren(el('div', { class: 'chips' }, list, input, dl), joined)
+    if (focusInput) input.focus()
+  }
+  draw()
+  return box
+}
+
+// Credits / documents --------------------------------------------------------------
+function creditRoleVocab() {
+  const s = new Set()
+  for (const f of order) for (const c of cur[f].data.credits || []) if (c?.role) s.add(c.role)
+  return [...s].sort()
+}
+function creditsEditor(d) {
+  const box = el('div')
+  const draw = (focusLast) => {
+    if (!Array.isArray(d.credits)) d.credits = []
+    const items = d.credits
+    const list = sortable(items, (c, i, remove) => el('div', { class: 'body' },
+      el('input', { type: 'text', value: c.role, placeholder: 'Role', list: 'credit-roles', 'aria-label': `Credit ${i + 1} role`, oninput: (e) => { c.role = e.target.value; markDirty() } }),
+      el('input', { type: 'text', value: c.name, placeholder: 'Name', 'aria-label': `Credit ${i + 1} name`, oninput: (e) => { c.name = e.target.value; markDirty() } }),
+      el('button', { type: 'button', class: 'small ghost', title: 'Remove credit', onclick: () => { remove(); markDirty(); draw() } }, '×')),
+      () => markDirty(), { label: 'credit' })
+    box.replaceChildren(list,
+      el('datalist', { id: 'credit-roles' }, ...creditRoleVocab().map((r) => el('option', { value: r }))),
+      el('button', { type: 'button', class: 'small', onclick: () => { items.push({ role: '', name: '' }); markDirty(); draw(true) } }, '+ Add credit'))
+    if (focusLast) list.lastElementChild?.querySelector('input')?.focus()
+    if (!items.length) list.replaceChildren(el('div', { class: 'hint', style: 'margin-bottom:6px' }, 'No credits.'))
+  }
+  draw()
+  return box
+}
+function documentsEditor(d) {
+  const box = el('div')
+  const draw = (focusLast) => {
+    if (!Array.isArray(d.documents)) d.documents = []
+    const items = d.documents
+    const list = sortable(items, (x, i, remove) => el('div', { class: 'body' },
+      el('input', { type: 'text', value: x.label, placeholder: 'Label (e.g. Light plot)', 'aria-label': `Document ${i + 1} label`, oninput: (e) => { x.label = e.target.value; markDirty() } }),
+      el('input', { type: 'text', value: x.file, placeholder: '/pdfs/<slug>/file.pdf', 'aria-label': `Document ${i + 1} file`, oninput: (e) => { x.file = e.target.value; markDirty() } }),
+      el('button', { type: 'button', class: 'small ghost', title: 'Remove document', onclick: () => { remove(); markDirty(); draw() } }, '×')),
+      () => markDirty(), { label: 'document' })
+    box.replaceChildren(list,
+      el('button', { type: 'button', class: 'small', onclick: () => { items.push({ label: '', file: `/pdfs/${selected}/` }); markDirty(); draw(true) } }, '+ Add document'))
+    if (focusLast) list.lastElementChild?.querySelector('input')?.focus()
+    if (!items.length) list.replaceChildren(el('div', { class: 'hint', style: 'margin-bottom:6px' }, 'No documents.'))
+  }
+  draw()
+  return box
+}
+
+// Images ---------------------------------------------------------------------------
+function uploadButton(folder, label, onUploaded) {
+  const input = el('input', { type: 'file', accept: 'image/*', multiple: true, onchange: async () => {
+    const files = [...input.files]; input.value = ''
+    for (const file of files) {
+      try {
+        const data = await new Promise((res, rej) => {
+          const r = new FileReader()
+          r.onload = () => res(String(r.result).split(',')[1] || '')
+          r.onerror = () => rej(new Error('could not read file'))
+          r.readAsDataURL(file)
+        })
+        const out = await api('POST', '/api/upload', { folder, filename: file.name, data })
+        saved[folder].images = out.images
+        toast(`Uploaded ${out.path}${out.renamed ? ' (renamed — name was taken)' : ''}`, 'ok')
+        onUploaded(out.path)
+      } catch (e) { toast(`Upload of ${file.name} failed: ${e.message}`, 'err') }
+    }
+  } })
+  return el('label', { class: 'upload' }, input, el('span', { class: 'small', role: 'button', tabindex: 0, style: 'border:1px solid var(--line2);border-radius:6px;padding:2px 8px;cursor:pointer;background:var(--panel2);font-size:12px',
+    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click() } } }, label))
+}
+function thumb(folder, p, extra = {}) {
+  return el('div', { class: 'thumb ' + (extra.cls || ''), title: p, ...extra.attrs },
+    el('img', { src: fileUrl(folder, p), alt: '', loading: 'lazy' }),
+    el('div', { class: 'cap' }, p.replace(/^\.\/images\//, '')),
+    extra.ctl || null)
+}
+function coverPicker(folder) {
+  const box = el('div')
+  const draw = () => {
+    const d = cur[folder].data
+    const imgs = saved[folder].images
+    const pick = (p) => { if (p) d.cover = p; else delete d.cover; markDirty(); draw(); renderPreview() }
+    box.replaceChildren(
+      el('div', { class: 'thumbs' },
+        el('div', { class: 'thumb pick none' + (!d.cover ? ' on' : ''), tabindex: 0, onclick: () => pick(null), onkeydown: (e) => { if (e.key === 'Enter') pick(null) } }, 'No cover'),
+        ...imgs.map((p) => thumb(folder, p, { cls: 'pick' + (d.cover === p ? ' on' : ''), attrs: { tabindex: 0, onclick: () => pick(p), onkeydown: (e) => { if (e.key === 'Enter') pick(p) } } })),
+        d.cover && !imgs.includes(d.cover) ? el('div', { class: 'thumb none on', style: 'color:var(--err)' }, `missing: ${d.cover}`) : null),
+      el('div', { style: 'margin-top:8px' }, uploadButton(folder, 'Upload cover…', (p) => pick(p))))
+  }
+  draw()
+  return box
+}
+function galleryEditor(folder) {
+  const box = el('div')
+  const draw = () => {
+    const d = cur[folder].data
+    if (!Array.isArray(d.gallery)) d.gallery = []
+    const items = d.gallery
+    const list = sortable(items, (p, i, remove) => el('div', {},
+      thumb(folder, p, { ctl: el('div', { class: 'ctl' },
+        el('span', { class: 'hint' }, `#${i + 1}`),
+        el('button', { type: 'button', title: 'Remove from gallery (file stays)', onclick: () => { remove(); markDirty(); draw() } }, '×')) })),
+      () => markDirty(), { horizontal: true, rowClass: 'srow', label: 'image' })
+    list.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px'
+    for (const r of list.children) r.style.margin = '0'
+    const unused = saved[folder].images.filter((p) => !items.includes(p) && p !== d.cover)
+    const add = el('select', { 'aria-label': 'Add image to gallery', style: 'width:auto', onchange: () => {
+      if (add.value === '*') items.push(...unused); else if (add.value) items.push(add.value)
+      markDirty(); draw()
+    } }, el('option', { value: '' }, unused.length ? `+ Add from folder (${unused.length})…` : 'No unused images'),
+      unused.length > 1 ? el('option', { value: '*' }, 'All unused images') : null,
+      ...unused.map((p) => el('option', { value: p }, p)))
+    if (!unused.length) add.disabled = true
+    box.replaceChildren(items.length ? list : el('div', { class: 'hint' }, 'Gallery is empty.'),
+      el('div', { style: 'margin-top:8px;display:flex;gap:8px;align-items:center' }, add,
+        uploadButton(folder, 'Upload to gallery…', (p) => { items.push(p); markDirty(); draw() })))
+  }
+  draw()
+  return box
+}
+
+async function reloadFromDisk(folder) {
+  try {
+    const res = await api('GET', '/api/projects')
+    const p = res.projects.find((x) => x.folder === folder)
+    if (!p) { toast(`${folder} is gone from disk`, 'warn'); order = order.filter((x) => x !== folder); delete cur[folder]; delete saved[folder]; selected = null }
+    else if (p.error) return toast(`${folder}: ${p.error}`, 'err')
+    else adopt(p)
+    renderList(); renderForm(); renderPreview(); updateBar(); loadScores(true)
+    toast(`Reloaded ${folder} from disk`, 'info')
+  } catch (e) { toast(`Reload failed: ${e.message}`, 'err') }
+}
+
+// ---- save / discard ----------------------------------------------------------
+
+let saving = false
+async function saveFolders(folders) {
+  if (saving || !folders.length) return
+  saving = true; $('#bar-save').disabled = true
+  let ok = 0
+  for (const f of folders) {
+    normalize(f)
+    try {
+      const r = await api('PUT', `/api/project?folder=${encodeURIComponent(f)}`, { data: cur[f].data, body: cur[f].body, hash: saved[f].hash })
+      adopt(r.project)
+      delete savedScores[f]
+      ok++
+    } catch (e) {
+      errorsBy[f] = e.errors || [e.message]
+      toast(`${cur[f].data.title}: ${e.message}`, 'err')
+    }
+  }
+  saving = false
+  renderList(); updateBar()
+  if (folders.includes(selected)) { renderForm(); reloadPreview(); loadScores(true) }
+  updateHealthCount()
+  if (ok) toast(`Saved ${ok} project${ok === 1 ? '' : 's'}`, 'ok')
+}
+const saveAll = () => saveFolders(dirtyFolders())
+
+const discardBtn = $('#bar-discard')
+;(() => {
+  let on = false, t
+  discardBtn.addEventListener('click', () => {
+    if (!on) { on = true; discardBtn.classList.add('armed'); discardBtn.textContent = 'Click again: discard all'; t = setTimeout(reset, 3500); return }
+    reset()
+    for (const f of dirtyFolders()) { cur[f] = { data: clone(saved[f].data), body: saved[f].body }; delete errorsBy[f] }
+    renderList(); renderForm(); renderPreview(); updateBar(); updateHealthCount(); loadScores()
+    toast('All unsaved edits discarded', 'info')
+  })
+  const reset = () => { clearTimeout(t); on = false; discardBtn.classList.remove('armed'); discardBtn.textContent = 'Discard' }
+})()
+$('#bar-save').addEventListener('click', saveAll)
+$('#bar-preview').addEventListener('click', () => { showPreview = !showPreview; renderPreview(); updateBar() })
+$('#bar-ship').addEventListener('click', () => openShip())
+
+// ---- preview + badges ----------------------------------------------------------------
+
+function pageUrl(folder) { return `${meta.base.replace(/\/$/, '')}/work/${folder}/` }
+function renderPreview() {
+  const view = $('#view-projects'), pane = $('#preview')
+  view.classList.toggle('no-preview', !showPreview)
+  if (!showPreview) { pane.replaceChildren(); return }
+  if (!selected || !cur[selected]) { pane.replaceChildren(el('div', { class: 'note' }, 'Nothing selected.')); return }
+  const d = saved[selected].data
+  const head = el('div', { class: 'pane-head' },
+    el('div', { id: 'badges' }, renderBadges()),
+    el('div', { class: 'hint', style: 'margin-top:6px;display:flex;gap:8px' },
+      el('span', { style: 'flex:1' }, 'Page shows the last saved version.'),
+      el('a', { href: pageUrl(selected), target: '_blank', rel: 'noopener', style: 'color:var(--accent)' }, 'open ↗'),
+      el('a', { href: '#', style: 'color:var(--accent)', onclick: (e) => { e.preventDefault(); reloadPreview() } }, 'reload')))
+  const body = d.draft
+    ? el('div', { class: 'note' }, 'Saved as a draft — drafts get no page. Untick Draft and save to preview it.')
+    : el('iframe', { id: 'preview-frame', src: pageUrl(selected), title: 'Live preview' })
+  pane.replaceChildren(head, body)
+}
+function reloadPreview() {
+  const fr = $('#preview-frame')
+  if (fr) { try { fr.contentWindow.location.reload() } catch { fr.src = fr.src } }
+  else renderPreview()
+}
+function renderBadges() {
+  if (!scores) return el('div', { class: 'hint' }, 'Scoring…')
+  const base = savedScores[selected]
+  const chg = (a, b) => base && JSON.stringify(a) !== JSON.stringify(b) ? ' changed' : ''
+  const s = scores
+  return el('div', {},
+    el('div', { class: 'badges' },
+      el('span', { class: 'badge' + chg(s.roleScore, base?.roleScore), title: 'roleScore() from src/lib/showcase.ts: 3 design/director/programmer/ME, 2 board, 1 other' }, `roleScore ${s.roleScore}`),
+      el('span', { class: 'badge ' + (s.resume.included ? 'yes' : 'no') + chg(s.resume.included, base?.resume.included), title: 'Résumé selected credits (resume.astro)' },
+        s.resume.included ? `✓ Résumé #${s.resume.rank}` : '✗ Not on résumé'),
+      el('span', { class: 'badge ' + (s.homepage.included ? 'yes' : s.homepage.eligible ? '' : 'no') + chg(s.homepage.included, base?.homepage.included), title: 'Homepage showcase (pickShowcase); needs a cover image' },
+        s.homepage.included ? `✓ Homepage #${s.homepage.rank}` : s.homepage.eligible ? '○ Featured-eligible' : '✗ Not featured-eligible'),
+      el('span', { class: 'badge' + chg(s.showcaseScore, base?.showcaseScore), title: 'showcaseScore(): role + gallery + photo cover + recency + featured' }, `showcase ${s.showcaseScore}`)),
+    (s.resume.why.length || s.homepage.why.length) ? el('div', { class: 'why' },
+      [s.resume.why.length && !s.resume.included ? `Résumé: ${s.resume.why.join(', ')}` : '', s.homepage.why.length ? `Homepage: ${s.homepage.why.join(', ')}` : ''].filter(Boolean).join(' · ')) : null,
+    base && (chg(s, base)) ? el('div', { class: 'why', style: 'color:var(--accent)' }, 'Highlighted badges change with your unsaved edits.') : null)
+}
+let scoreSeq = 0
+async function loadScores(asBaseline = false) {
+  if (!selected || !cur[selected]) return
+  const seq = ++scoreSeq, folder = selected
+  const projects = order.map((f) => ({ folder: f, data: cur[f].data }))
+  try {
+    const r = await api('POST', '/api/score', { projects, folder })
+    if (seq !== scoreSeq || folder !== selected) return
+    roleScores = r.roleScores || roleScores
+    if (asBaseline || !savedScores[folder]) {
+      const sp = order.map((f) => ({ folder: f, data: saved[f].data }))
+      savedScores[folder] = isDirty(folder) ? (await api('POST', '/api/score', { projects: sp, folder }).catch(() => r)) : r
+    }
+    scores = r
+    const b = $('#badges'); if (b) b.replaceChildren(renderBadges())
+  } catch (e) {
+    const b = $('#badges'); if (b) b.replaceChildren(el('div', { class: 'hint' }, `Scoring unavailable: ${e.message}`))
+  }
+}
+
+// ---- health -------------------------------------------------------------------------
+
+function lev(a, b) {
+  const m = a.length, n = b.length
+  if (Math.abs(m - n) > 2) return 3
+  let prev = Array.from({ length: n + 1 }, (_, j) => j)
+  for (let i = 1; i <= m; i++) {
+    const row = [i]
+    for (let j = 1; j <= n; j++) row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+    prev = row
+  }
+  return prev[n]
+}
+// "Spot Operator" vs "Followspot Operator": one is a suffix of the other with
+// the join inside a word. "Electrician" vs "Master Electrician" joins at a
+// space — a genuinely different role — so it is not flagged.
+function nearDup(a, b) {
+  const x = a.toLowerCase(), y = b.toLowerCase()
+  if (x === y) return 'differs only in case'
+  if (x.replace(/[\s-]/g, '') === y.replace(/[\s-]/g, '')) return 'differs only in spacing'
+  const [s, l] = x.length < y.length ? [x, y] : [y, x]
+  if (l.endsWith(s) && /[a-z]/.test(l[l.length - s.length - 1] || '')) return 'one is the other with a prefix glued on'
+  if (s.length >= 6 && lev(x, y) <= 2) return 'spelling differs by ≤ 2 letters'
+  return null
+}
+
+function healthIssues() {
+  const out = []   // { kind, level, folder?, msg }
+  const add = (kind, level, folder, msg) => out.push({ kind, level, folder, msg })
+  const vocab = roleVocab()
+  const use = new Map()
+  for (const f of order) for (const r of rolesOf(cur[f].data.role)) { if (!use.has(r)) use.set(r, []); use.get(r).push(f) }
+  for (const [r, c] of vocab) if (c === 1) add('rare-role', 'info', use.get(r)[0], `“${r}” is used by only this project — not part of the shared role vocabulary`)
+  for (let i = 0; i < vocab.length; i++) for (let j = i + 1; j < vocab.length; j++) {
+    const [a] = vocab[i], [b] = vocab[j], why = nearDup(a, b)
+    if (why) {
+      add('near-dup', 'warn', null, el('span', {}, `“${a}” (${use.get(a).length}) vs “${b}” (${use.get(b).length}) — ${why}. `,
+        ...[...use.get(a), ...use.get(b)].map((f) => projLink(f, true))))
+    }
+  }
+  const titles = new Map()
+  for (const f of order) {
+    const d = cur[f].data
+    const fy = Number(f.slice(0, 4))
+    if (fy !== d.year) add('folder-year', 'warn', f, `folder prefix ${fy} ≠ year ${d.year}`)
+    const py = Number(String(d.publishedAt || '').slice(0, 4))
+    if (d.publishedAt && py !== d.year) add('pub-year', 'warn', f, `publishedAt ${d.publishedAt} is not in year ${d.year}`)
+    if (!d.venue && !d.client) {
+      const rs = roleScores[f]
+      add('no-venue', rs >= 2 ? 'warn' : 'info', f, rs >= 2 ? 'no venue or client — would otherwise be on the résumé (roleScore ≥ 2)' : 'no venue or client — off the résumé')
+    }
+    if (!d.cover) add('no-cover', 'info', f, 'no cover image — title-card fallback, never on the homepage')
+    const t = String(d.title || '').trim().toLowerCase()
+    if (!titles.has(t)) titles.set(t, []); titles.get(t).push(f)
+    if (!d.title?.trim()) add('invalid', 'warn', f, 'title is empty')
+    if (!rolesOf(d.role).length) add('invalid', 'warn', f, 'role is empty')
+  }
+  for (const [t, fs] of titles) if (fs.length > 1 && t) add('dup-title', 'warn', null, el('span', {}, `“${cur[fs[0]].data.title}” is used by ${fs.length} projects: `, ...fs.map((f) => projLink(f, true))))
+  return out
+}
+const KINDS = {
+  'near-dup': 'Near-duplicate roles', 'rare-role': 'Roles outside the shared vocabulary', 'folder-year': 'Folder year ≠ year',
+  'pub-year': 'publishedAt year ≠ year', 'no-venue': 'Missing venue and client (off résumé)', 'no-cover': 'Missing cover',
+  'dup-title': 'Duplicate titles', invalid: 'Invalid fields',
+}
+function projLink(f, compact) {
+  return el('a', { onclick: () => goTo(f), title: `Open ${f}`, style: compact ? 'margin-right:8px' : '' }, compact ? (cur[f]?.data.title || f) : `${cur[f]?.data.title || f} →`)
+}
+function goTo(f) { switchTab('projects'); select(f); const it = document.querySelector(`#list .item[data-folder="${CSS.escape(f)}"]`); it?.scrollIntoView({ block: 'nearest' }) }
+function updateHealthCount() {
+  const n = healthIssues().filter((i) => i.level === 'warn').length
+  const c = $('#health-count'); c.hidden = !n; c.textContent = n
+  if ($('#view-health').classList.contains('active')) renderHealth()
+}
+function renderHealth() {
+  const issues = healthIssues()
+  const groups = Object.keys(KINDS).map((k) => [k, issues.filter((i) => i.kind === k)]).filter(([, v]) => v.length)
+  $('#view-health').replaceChildren(el('div', { class: 'page-inner' },
+    el('div', { class: 'pane-head', style: 'margin:0 -20px;padding:12px 20px;display:flex;gap:12px;align-items:center' },
+      el('h2', {}, 'Content health'), el('span', { class: 'hint' }, 'Live — includes unsaved edits. Click a project to open it.')),
+    !groups.length ? el('div', { class: 'empty' }, 'No issues found.') : null,
+    ...groups.map(([k, list]) => el('div', { class: 'group' },
+      el('h3', {}, KINDS[k], el('span', { class: 'n' }, `${list.length}`)),
+      ...list.map((i) => el('div', { class: 'warn' },
+        el('span', { class: 'lvl ' + (i.level === 'warn' ? 'warn-l' : 'info-l') }, i.level),
+        i.folder ? projLink(i.folder) : null,
+        el('span', { class: 'msg' }, i.msg)))))))
+}
+
+// ---- find & replace --------------------------------------------------------------------
+
+let frMatches = []
+function renderReplace() {
+  const v = $('#view-replace')
+  if (v.dataset.built) return
+  v.dataset.built = '1'
+  const find = el('input', { type: 'text', placeholder: 'Find (literal text)', 'aria-label': 'Find' })
+  const repl = el('input', { type: 'text', placeholder: 'Replace with', 'aria-label': 'Replace with' })
+  const cs = el('input', { type: 'checkbox', checked: true })
+  const scopes = { role: el('input', { type: 'checkbox', checked: true }), credits: el('input', { type: 'checkbox', checked: true }), synopsis: el('input', { type: 'checkbox', checked: true }) }
+  const onlySel = el('input', { type: 'checkbox' })
+  const results = el('div')
+  const run = () => {
+    frMatches = []
+    const needle = find.value
+    if (!needle) { results.replaceChildren(el('div', { class: 'empty' }, 'Type something to find.')); return }
+    const norm = (s) => cs.checked ? s : s.toLowerCase()
+    const n = norm(needle)
+    const folders = onlySel.checked ? order.filter((f) => multi.has(f)) : order
+    for (const f of folders) {
+      const d = cur[f].data
+      const fields = []
+      if (scopes.role.checked) fields.push([['role'], 'role'])
+      if (scopes.synopsis.checked) fields.push([['synopsis'], 'synopsis'])
+      if (scopes.credits.checked) (d.credits || []).forEach((c, i) => { fields.push([['credits', i, 'role'], `credits[${i}].role`]); fields.push([['credits', i, 'name'], `credits[${i}].name`]) })
+      for (const [p, label] of fields) {
+        const text = p.reduce((o, k) => o?.[k], d)
+        if (typeof text !== 'string') continue
+        const h = norm(text)
+        for (let at = h.indexOf(n); at !== -1; at = h.indexOf(n, at + n.length)) frMatches.push({ folder: f, path: p, label, at, len: needle.length, text, on: true })
+      }
+    }
+    drawMatches()
+  }
+  const drawMatches = () => {
+    const shown = frMatches.slice(0, 500)
+    const applyBtn = el('button', { class: 'primary', disabled: !frMatches.some((m) => m.on), onclick: apply }, `Apply ${frMatches.filter((m) => m.on).length} as unsaved edits`)
+    results.replaceChildren(
+      el('div', { style: 'display:flex;gap:10px;align-items:center;margin:14px 0 6px' },
+        el('b', {}, `${frMatches.length} match${frMatches.length === 1 ? '' : 'es'} in ${new Set(frMatches.map((m) => m.folder)).size} projects`),
+        el('a', { href: '#', class: 'hint', onclick: (e) => { e.preventDefault(); const all = frMatches.every((m) => m.on); frMatches.forEach((m) => { m.on = !all }); drawMatches() } }, 'toggle all'),
+        el('span', { style: 'flex:1' }), applyBtn),
+      frMatches.length ? el('div', { class: 'group', style: 'margin-top:0' }, ...shown.map((m) => {
+        const pre = m.text.slice(Math.max(0, m.at - 40), m.at), post = m.text.slice(m.at + m.len, m.at + m.len + 40)
+        return el('label', { class: 'match' },
+          el('input', { type: 'checkbox', checked: m.on, onchange: (e) => { m.on = e.target.checked; applyBtn.disabled = !frMatches.some((x) => x.on); applyBtn.textContent = `Apply ${frMatches.filter((x) => x.on).length} as unsaved edits` } }),
+          el('span', {}, el('a', { onclick: (e) => { e.preventDefault(); goTo(m.folder) } }, cur[m.folder].data.title), el('div', { class: 'hint' }, m.label)),
+          el('span', { class: 'ctx' }, (m.at > 40 ? '…' : '') + pre, el('del', {}, m.text.slice(m.at, m.at + m.len)), el('ins', {}, repl.value), post + (m.at + m.len + 40 < m.text.length ? '…' : '')))
+      }), frMatches.length > shown.length ? el('div', { class: 'warn' }, `…and ${frMatches.length - shown.length} more (all are applied if checked)`) : null)
+        : el('div', { class: 'empty' }, 'No matches.'))
+  }
+  const apply = () => {
+    const on = frMatches.filter((m) => m.on)
+    // Group per field; replace right-to-left so earlier offsets stay valid.
+    const byField = new Map()
+    for (const m of on) { const k = m.folder + '\0' + m.path.join('.'); if (!byField.has(k)) byField.set(k, []); byField.get(k).push(m) }
+    const touched = new Set()
+    for (const ms of byField.values()) {
+      const { folder, path: p } = ms[0]
+      const parent = p.slice(0, -1).reduce((o, k) => o[k], cur[folder].data)
+      const key = p[p.length - 1]
+      let s = parent[key]
+      if (s !== ms[0].text) continue // edited since the search ran
+      for (const m of ms.sort((a, b) => b.at - a.at)) s = s.slice(0, m.at) + repl.value + s.slice(m.at + m.len)
+      parent[key] = s
+      touched.add(folder)
+    }
+    for (const f of touched) markDirty(f)
+    renderList(); if (touched.has(selected)) renderForm()
+    toast(`Replaced ${on.length} match${on.length === 1 ? '' : 'es'} in ${touched.size} project(s) — unsaved; review then Save`, 'ok')
+    run()
+  }
+  for (const i of [find, repl]) i.addEventListener('input', debounce(run, 150))
+  for (const c of [cs, onlySel, ...Object.values(scopes)]) c.addEventListener('change', run)
+  find.addEventListener('keydown', (e) => { if (e.key === 'Enter') run() })
+  v.replaceChildren(el('div', { class: 'page-inner' },
+    el('div', { class: 'pane-head', style: 'margin:0 -20px;padding:12px 20px' }, el('h2', {}, 'Find & replace'),
+      el('div', { class: 'hint' }, 'Literal text across role, credits and synopsis. Nothing is written until you Save.')),
+    el('div', { style: 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px' }, find, repl),
+    el('div', { class: 'checks', style: 'margin-top:10px;font-size:13px' },
+      el('label', {}, cs, 'Case-sensitive'),
+      el('label', {}, scopes.role, 'Role'), el('label', {}, scopes.credits, 'Credits (role & name)'), el('label', {}, scopes.synopsis, 'Synopsis'),
+      el('label', {}, onlySel, 'Only selected projects')),
+    results))
+  run()
+}
+
+// ---- modals ------------------------------------------------------------------------------
+
+let modalStack = []
+function openModal(node, { narrow = false, onClose } = {}) {
+  const back = el('div', { class: 'modal-back', onmousedown: (e) => { if (e.target === back) close() } })
+  const box = el('div', { class: 'modal' + (narrow ? ' narrow' : ''), role: 'dialog', 'aria-modal': 'true' })
+  const prevFocus = document.activeElement
+  const close = () => { back.remove(); modalStack = modalStack.filter((m) => m !== entry); onClose?.(); prevFocus?.focus?.() }
+  const entry = { close }
+  box.append(...[].concat(node(close)))
+  back.append(box); document.body.append(back)
+  modalStack.push(entry)
+  requestAnimationFrame(() => box.querySelector('[autofocus], input, textarea, button')?.focus())
+  return close
+}
+
+function openHelp() {
+  openModal((close) => [
+    el('div', { class: 'mh' }, el('h2', {}, 'Keyboard shortcuts'), el('button', { class: 'small ghost', onclick: close }, 'Esc')),
+    el('div', { class: 'mb' }, el('div', { class: 'help-grid' },
+      el('kbd', {}, '⌘S / Ctrl+S'), 'Save all unsaved changes',
+      el('kbd', {}, 'Alt+↑ / Alt+↓'), 'Move the focused credit / document / image / role chip (focus its ⋮⋮ handle)',
+      el('kbd', {}, 'Alt+Shift+↑ / ↓'), 'Previous / next project in the list',
+      el('kbd', {}, '/'), 'Focus project search',
+      el('kbd', {}, 'Enter'), 'In the role box: add the typed role · on a list row: open it',
+      el('kbd', {}, 'Backspace'), 'In an empty role box: remove the last role',
+      el('kbd', {}, 'Esc'), 'Close dialog',
+      el('kbd', {}, '?'), 'This help'),
+      el('div', { class: 'hint' }, 'Drag the ⋮⋮ handles to reorder. Delete and Discard need a second click — there are no pop-up confirmations.'))])
+}
+
+function openNew() {
+  openModal((close) => {
+    const title = el('input', { type: 'text', placeholder: 'Show title', autofocus: true })
+    const slug = el('input', { type: 'text', placeholder: 'kebab-case-slug' })
+    const year = el('input', { type: 'number', value: new Date().getFullYear(), min: 1990, max: 2100 })
+    const disc = el('select', {}, ...meta.enums.discipline.map((d) => el('option', { value: d, selected: d === 'theatre' }, d)))
+    const msg = el('div', { class: 'hint' })
+    let slugTouched = false
+    const takenSlugs = () => order.map((f) => f.replace(/^\d{4}-/, ''))
+    const check = () => {
+      const s = slug.value
+      if (!s) { msg.className = 'hint'; msg.textContent = 'Folder: ' + `${year.value}-…`; return false }
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) { msg.className = 'field-err'; msg.textContent = 'kebab-case only: a-z, 0-9, single dashes'; return false }
+      if (/^\d{4}-/.test(s)) { msg.className = 'field-err'; msg.textContent = 'leave the year off — the folder gets it as a prefix'; return false }
+      if (takenSlugs().includes(s)) { msg.className = 'field-err'; msg.textContent = `“${s}” is taken`; return false }
+      msg.className = 'field-ok'; msg.textContent = `Folder: ${meta.projectsDir}/${year.value}-${s}/  ·  page: /work/${year.value}-${s}`; return true
+    }
+    title.addEventListener('input', () => { if (!slugTouched) slug.value = kebab(title.value); check() })
+    slug.addEventListener('input', () => { slugTouched = true; check() })
+    year.addEventListener('input', check)
+    const create = async () => {
+      if (!title.value.trim()) { msg.className = 'field-err'; msg.textContent = 'title is required'; return }
+      if (!check()) return
+      try {
+        const r = await api('POST', '/api/project', { slug: slug.value, year: year.valueAsNumber, title: title.value.trim(), discipline: disc.value })
+        adopt(r.project); order.push(r.project.folder); fillYearFilter()
+        close(); selected = null; select(r.project.folder); renderList(); updateHealthCount()
+        toast(`Created ${r.project.folder} (as a draft)`, 'ok')
+      } catch (e) { msg.className = 'field-err'; msg.textContent = e.message }
+    }
+    for (const i of [title, slug, year]) i.addEventListener('keydown', (e) => { if (e.key === 'Enter') create() })
+    check()
+    return [
+      el('div', { class: 'mh' }, el('h2', {}, 'New project'), el('button', { class: 'small ghost', onclick: close }, 'Esc')),
+      el('div', { class: 'mb' },
+        field('Title', 'x', title), field('Slug', 'x', slug),
+        el('div', { class: 'row' }, field('Year', 'x', year), field('Discipline', 'x', disc)), msg,
+        el('div', { class: 'hint' }, 'Created from the template as a draft with images/ ready for uploads. It is written to disk immediately.')),
+      el('div', { class: 'mf' }, el('span', { style: 'flex:1' }), el('button', { onclick: close }, 'Cancel'), el('button', { class: 'primary', onclick: create }, 'Create'))]
+  }, { narrow: true })
+}
+
+// ---- review & ship ------------------------------------------------------------------------
+
+function diffPre(diff) {
+  const pre = el('pre', { class: 'diff' })
+  for (const line of diff.split('\n')) {
+    const cls = line.startsWith('+') && !line.startsWith('+++') ? 'add'
+      : line.startsWith('-') && !line.startsWith('---') ? 'del'
+      : line.startsWith('@@') ? 'hunk' : /^(diff |index |new file|deleted file|Binary|\+\+\+|---)/.test(line) ? 'meta' : ''
+    pre.append(el('span', { class: `dl ${cls}` }, line || ' '))
+  }
+  return pre
+}
+function draftText(projects) {
+  const verb = (p) => p.kind === 'added' ? 'Add' : p.kind === 'deleted' ? 'Remove' : 'Update'
+  const what = (p) => {
+    if (p.kind !== 'modified') return p.kind === 'added' ? 'new project' : 'project removed'
+    const bits = [...p.keys]
+    if (p.bodyChanged) bits.push('body')
+    const imgs = p.images.filter((i) => i.status !== 'M' && i.status !== 'D').length
+    if (imgs) bits.push(`${imgs} new image${imgs === 1 ? '' : 's'}`)
+    return bits.join(', ') || 'files changed'
+  }
+  let subject
+  if (projects.length === 1) {
+    const p = projects[0]
+    subject = p.kind === 'modified' && p.keys.length && p.keys.length <= 2 && !p.bodyChanged
+      ? `Update ${p.title}: ${p.keys.join(' and ')}`
+      : `${verb(p)} ${p.title}`
+  } else {
+    const kinds = new Set(projects.map(verb))
+    const v = kinds.size === 1 ? [...kinds][0] : 'Update'
+    const names = projects.slice(0, 3).map((p) => p.title).join(', ')
+    subject = `${v} ${names}${projects.length > 3 ? ` and ${projects.length - 3} more` : ''}`
+  }
+  const lines = projects.map((p) => `- ${p.title} (${p.folder}): ${what(p)}`)
+  return {
+    subject,
+    message: `${subject}\n\n${lines.join('\n')}\n`,
+    body: `## Content changes\n\n${projects.map((p) => `- **${p.title}** (\`${p.folder}\`) — ${what(p)}`).join('\n')}\n\n## Check\n\n${projects.filter((p) => p.kind !== 'deleted').map((p) => `- [ ] /work/${p.folder}`).join('\n') || '- [ ] /work'}\n`,
+  }
+}
+
+async function openShip() {
+  openModal((close) => {
+    const body = el('div', { class: 'mb' }, el('div', { class: 'empty' }, 'Loading changes…'))
+    const foot = el('div', { class: 'mf' })
+    load()
+    async function load() {
+      let rv
+      try { rv = await api('GET', '/api/review') } catch (e) { body.replaceChildren(el('div', { class: 'alert err' }, `Could not read git state: ${e.message}`)); return }
+      const dirty = dirtyFolders()
+      const onMain = /^(main|master)$/.test(rv.branch)
+      const draft = draftText(rv.projects)
+      const userEdited = new Set()
+      const branch = el('input', { type: 'text', value: rv.suggestedBranch, 'aria-label': 'Branch name' })
+      const branchMsg = el('div', { class: 'hint' })
+      const msg = el('textarea', { class: 'mono', rows: 6, value: draft.message, 'aria-label': 'Commit message', oninput: () => userEdited.add('msg') })
+      const title = el('input', { type: 'text', value: draft.subject, 'aria-label': 'PR title', oninput: () => userEdited.add('title') })
+      const prBody = el('textarea', { class: 'mono', rows: 8, value: draft.body, 'aria-label': 'PR body' })
+      const dry = el('input', { type: 'checkbox', checked: true })
+      let mode = onMain ? 'new' : 'current'
+      const modeBox = el('div')
+      const drawMode = () => {
+        modeBox.replaceChildren(onMain
+          ? el('div', { class: 'hint' }, 'You are on ', el('b', { style: 'color:var(--err)' }, rv.branch), ' — a new branch is required (commits on main are refused).')
+          : el('div', {},
+            el('label', { class: 'radio' }, el('input', { type: 'radio', name: 'mode', checked: mode === 'current', onchange: () => { mode = 'current'; drawMode() } }), el('span', {}, 'Commit to current branch ', el('code', {}, rv.branch))),
+            el('label', { class: 'radio' }, el('input', { type: 'radio', name: 'mode', checked: mode === 'new', onchange: () => { mode = 'new'; drawMode() } }), el('span', {}, 'New branch from current HEAD'))))
+        branch.disabled = mode !== 'new'
+        branchWrap.hidden = mode !== 'new'
+      }
+      const checkBranch = debounce(async () => {
+        const name = branch.value
+        try {
+          const r = await api('GET', `/api/branch-check?name=${encodeURIComponent(name)}`)
+          branchMsg.className = r.ok ? 'field-ok' : 'field-err'
+          branchMsg.textContent = r.ok ? `✓ ${name} is free` : r.error
+        } catch (e) { branchMsg.className = 'field-err'; branchMsg.textContent = e.message }
+      }, 200)
+      branch.addEventListener('input', checkBranch)
+      const branchWrap = el('div', {}, field('Branch name', 'x', branch), branchMsg)
+      const result = el('div')
+      const shipBtn = el('button', { class: 'primary' }, 'Dry run')
+      dry.addEventListener('change', () => { shipBtn.textContent = dry.checked ? 'Dry run' : 'Commit, push & open PR' })
+      const blocked = rv.unrelated.length > 0 || rv.files.length === 0
+      shipBtn.disabled = blocked
+      shipBtn.addEventListener('click', async () => {
+        shipBtn.disabled = true
+        result.replaceChildren(el('div', { class: 'hint' }, dry.checked ? 'Planning…' : 'Shipping…'))
+        try {
+          const r = await api('POST', '/api/ship', { mode, branch: branch.value, message: msg.value, title: title.value, body: prBody.value, dryRun: dry.checked })
+          if (r.dryRun) {
+            result.replaceChildren(el('div', { class: 'alert ok' }, el('b', {}, 'Dry run — nothing was run. '), `Would ship ${r.files.length} file(s) to `, el('code', {}, r.branch), ':'),
+              el('pre', { class: 'cmds', style: 'margin-top:8px' }, r.commands.map((c) => '$ ' + c).join('\n')))
+          } else {
+            result.replaceChildren(el('div', { class: 'alert ok' }, el('b', {}, 'Shipped. '), r.prUrl ? el('span', {}, 'PR: ', el('a', { href: r.prUrl, target: '_blank', rel: 'noopener', style: 'color:var(--accent)' }, r.prUrl)) : 'Pushed.', ' Not merged — review it on GitHub.'),
+              el('pre', { class: 'cmds', style: 'margin-top:8px' }, r.log.map((l) => `$ ${l.cmd}\n${l.output}`).join('\n\n')))
+            toast('Shipped — PR opened', 'ok', 8000)
+            const p = await api('GET', '/api/projects'); meta.branch = p.branch
+            $('#branch').replaceChildren('on ', el('b', {}, p.branch))
+          }
+        } catch (e) {
+          result.replaceChildren(el('div', { class: 'alert err' }, el('b', {}, 'Refused / failed: '), e.message,
+            e.details?.length ? el('ul', {}, ...e.details.map((x) => el('li', {}, x))) : null),
+            e.log?.length ? el('pre', { class: 'cmds', style: 'margin-top:8px' }, e.log.map((l) => `$ ${l.cmd}  ${l.ok ? '✓' : '✗'}\n${l.output}`).join('\n\n')) : null)
+        } finally { shipBtn.disabled = blocked }
+      })
+
+      body.replaceChildren(
+        dirty.length ? el('div', { class: 'alert warn' }, `${dirty.length} project(s) have unsaved edits that are NOT in this diff. `,
+          el('button', { class: 'small', onclick: async () => { await saveAll(); load() } }, 'Save all & refresh')) : null,
+        rv.unrelated.length ? el('div', { class: 'alert err' }, el('b', {}, 'Ship is blocked: '), 'these uncommitted changes were not made by this panel. Commit, revert or move them first:',
+          el('ul', {}, ...rv.unrelated.map((f) => el('li', {}, `${f.status} ${f.path}`)))) : null,
+        el('div', { class: 'ship-grid' },
+          el('div', {},
+            el('h3', { style: 'margin:0 0 8px;font-size:13px' }, `${rv.files.length} changed file${rv.files.length === 1 ? '' : 's'} (vs HEAD)`),
+            rv.files.length ? el('div', {}, ...rv.files.map((f) => el('details', { class: 'file', open: f.path.endsWith('.mdx') ? true : undefined },
+              el('summary', {}, el('span', { class: `st st-${f.status.trim() === '??' ? 'A' : f.status.trim()}` }, f.status.trim() === '??' ? 'A' : f.status.trim()), ' ', f.path),
+              diffPre(f.diff)))) : el('div', { class: 'empty' }, 'Nothing to ship — no saved panel changes in the working tree.')),
+          el('div', { style: 'display:grid;gap:12px' },
+            el('div', { class: 'hint' }, 'Current branch: ', el('code', {}, rv.branch)),
+            modeBox, branchWrap,
+            field('Commit message', 'x', msg),
+            field('PR title', 'x', title),
+            field('PR body', 'x', prBody),
+            el('label', { class: 'radio' }, dry, el('span', {}, el('b', {}, 'Dry run'), ' — show the exact commands without running them')),
+            el('div', { class: 'hint' }, 'Commits only the files listed here, pushes without force and opens a PR against main. It never merges.'),
+            result)))
+      foot.replaceChildren(el('span', { class: 'hint', style: 'flex:1' }, 'Esc to close'), el('button', { onclick: close }, 'Close'), shipBtn)
+      drawMode(); if (mode === 'new' || onMain) checkBranch()
+      branch.addEventListener('focus', checkBranch, { once: true })
+    }
+    return [el('div', { class: 'mh' }, el('h2', {}, 'Review & Ship'), el('button', { class: 'small ghost', onclick: close }, 'Esc')), body, foot]
+  })
+}
+
+// ---- tabs, shortcuts --------------------------------------------------------------------
+
+function switchTab(t) {
+  for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.tab === t)
+  for (const v of document.querySelectorAll('.view')) v.classList.toggle('active', v.id === `view-${t}`)
+  if (t === 'health') renderHealth()
+  if (t === 'replace') renderReplace()
+}
+for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => switchTab(b.dataset.tab))
+$('#new-btn').addEventListener('click', openNew)
+$('#help-btn').addEventListener('click', openHelp)
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveAll(); return }
+  if (e.key === 'Escape' && modalStack.length) { e.preventDefault(); modalStack[modalStack.length - 1].close(); return }
+  if (modalStack.length) return
+  if (e.altKey && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    e.preventDefault()
+    const vis = visibleFolders(), i = vis.indexOf(selected)
+    const n = vis[Math.max(0, Math.min(vis.length - 1, i + (e.key === 'ArrowUp' ? -1 : 1)))]
+    if (n) { select(n); document.querySelector(`#list .item[data-folder="${CSS.escape(n)}"]`)?.scrollIntoView({ block: 'nearest' }) }
+    return
+  }
+  if (typing(e)) return
+  if (e.key === '?') { e.preventDefault(); openHelp() }
+  else if (e.key === '/') { e.preventDefault(); switchTab('projects'); $('#f-q').focus() }
+})
+
+load().then(() => updateHealthCount())
+</script>
+</body>
+</html>

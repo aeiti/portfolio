@@ -14,6 +14,20 @@ npm run build    # writes ./dist
 npm run preview  # serves the built site at /portfolio/
 ```
 
+### Content admin (dev only)
+
+`npm run dev`, then open **http://localhost:4321/__admin/** (also served at
+`/portfolio/__admin/`). It edits every project's frontmatter and MDX body,
+uploads images into the project folder, flags content problems (Health tab),
+does find & replace across roles/credits/synopses, and previews the page
+with résumé/homepage badges from `src/lib/showcase.ts`. Saves rewrite only
+the keys you changed. **Review & Ship** shows the diff, then creates a
+branch, commits just the panel's files, pushes and opens a PR (never on
+`main`, never merges; dry-run by default). Press `?` for shortcuts.
+
+It is a Vite plugin with `apply: 'serve'` (`scripts/dev-admin/`), answers
+only to localhost, and is absent from `npm run build`.
+
 ## Add a project
 
 Each project is a folder under `src/content/projects/` named
