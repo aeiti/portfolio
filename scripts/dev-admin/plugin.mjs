@@ -16,9 +16,19 @@
 //   DELETE /api/project?folder=&hash=  delete the project folder
 //   POST   /api/upload                 { folder, filename, data(base64) } → ./images/<name>
 //   GET    /api/file?folder=&path=     raw image bytes (thumbnails)
-//   POST   /api/score                  roleScore / résumé / homepage badges via src/lib/showcase.ts
+//   POST   /api/score                  roleScore / résumé / homepage badges (settings.mjs ranking)
+//   GET    /api/settings               site settings { data, hash, source, path }
+//   PUT    /api/settings               save { data, hash } — validated; 409 if the file changed
+//   GET    /api/settings/usage         projects using each discipline/console/coverKind key, role counts
+//   POST   /api/settings/preview       { settings } → résumé + homepage lists those settings would build
+//   GET    /settings.mjs               settings.mjs itself, so the UI validates with the same code
 //   GET    /api/review                 changed files, per-file diffs, per-project change summary
 //   POST   /api/ship                   branch → commit → push → gh pr create (or dryRun: list commands)
+//
+// Site settings live in src/data/site.json. Until that file exists (it is
+// added by the site-side change), the panel falls back to
+// scripts/dev-admin/fixtures/site.sample.json and logs a warning — dev and
+// testing only. Settings are re-read on every request, never cached.
 //
 // Saves go through frontmatter.mjs: surgical per-key splices, re-parsed and
 // deep-compared before the file is written; a mismatch is refused.
@@ -35,6 +45,8 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PROJECTS_REL = 'src/content/projects'
+const SETTINGS_REL = 'src/data/site.json'
+const FIXTURE_ABS = path.join(__dirname, 'fixtures', 'site.sample.json')
 const FOLDER_RE = /^\d{4}-[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/
@@ -145,6 +157,7 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
     apply: 'serve',
     async configureServer(server) {
       const fm = await import('./frontmatter.mjs')
+      const st = await import('./settings.mjs')
       const root = server.config.root.replace(/\/$/, '')
       const projectsDir = path.join(root, PROJECTS_REL)
       const base = siteBase.endsWith('/') ? siteBase : siteBase + '/'
@@ -166,10 +179,39 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
       const writeTouched = async (set) => {
         fs.writeFileSync(await touchedPath(), JSON.stringify([...set].sort(), null, 2))
       }
-      const touch = async (folder) => {
+      const touchPath = async (rel) => {
         const set = await readTouched()
-        set.add(`${PROJECTS_REL}/${folder}/`)
+        set.add(rel)
         await writeTouched(set)
+      }
+      const touch = (folder) => touchPath(`${PROJECTS_REL}/${folder}/`)
+
+      // ---- site settings -------------------------------------------------
+      let warnedFallback = false
+      const settingsFile = () => {
+        const abs = path.join(root, SETTINGS_REL)
+        if (fs.existsSync(abs)) { warnedFallback = false; return { abs, rel: SETTINGS_REL, source: 'site' } }
+        if (!warnedFallback) {
+          server.config.logger.warn(`  content admin: ${SETTINGS_REL} not found — using ${path.relative(root, FIXTURE_ABS)} (dev/testing fallback only)`, { timestamp: true })
+          warnedFallback = true
+        }
+        return { abs: FIXTURE_ABS, rel: path.relative(root, FIXTURE_ABS).split(path.sep).join('/'), source: 'fixture' }
+      }
+      // Re-read on every call; `applied` only skips re-applying identical text.
+      let applied = null
+      const loadSettings = () => {
+        const f = settingsFile()
+        const raw = fs.readFileSync(f.abs, 'utf8')
+        let data
+        try { data = JSON.parse(raw) } catch (e) { throw new Error(`${f.rel} is not valid JSON: ${e.message}`) }
+        const hash = sha(raw)
+        if (applied !== hash) {
+          const errs = st.validateSettings(data)
+          if (errs.length) throw new Error(`${f.rel} is invalid: ${errs.slice(0, 3).map((e) => `${e.path}: ${e.msg}`).join('; ')}`)
+          fm.applySettings(data)
+          applied = hash
+        }
+        return { ...f, raw, hash, data }
       }
 
       const folderAbs = (folder) => {
@@ -190,6 +232,7 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
         const { data, body } = fm.readProject(src)
         return { folder, slug: folder, data, body, hash: sha(src), images: listImages(dir) }
       }
+      const projectData = () => listProjects().filter((p) => !p.error).map((p) => ({ folder: p.folder, data: p.data }))
       const listProjects = () => {
         if (!fs.existsSync(projectsDir)) return []
         return fs.readdirSync(projectsDir, { withFileTypes: true })
@@ -234,7 +277,8 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
 
       // Per-project summary of what changed vs HEAD, for drafting commit/PR text.
       const summarize = async (mine) => {
-        const folders = [...new Set(mine.map((f) => f.path.slice(PROJECTS_REL.length + 1).split('/')[0]))].sort()
+        const folders = [...new Set(mine.filter((f) => f.path.startsWith(PROJECTS_REL + '/'))
+          .map((f) => f.path.slice(PROJECTS_REL.length + 1).split('/')[0]))].sort()
         const out = []
         for (const folder of folders) {
           const rel = `${PROJECTS_REL}/${folder}/index.mdx`
@@ -262,56 +306,79 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
       }
 
       // ---- showcase / résumé badges -------------------------------------
-      // Uses the real src/lib/showcase.ts. The résumé filter lives inline in
-      // src/pages/resume.astro and the homepage count in index.astro, so the
-      // numbers are read from those files (with the current values as a
-      // fallback) rather than copied here.
-      const pageNumber = (rel, re, fallback) => {
-        try {
-          const m = fs.readFileSync(path.join(root, rel), 'utf8').match(re)
-          return m ? Number(m[1]) : fallback
-        } catch { return fallback }
-      }
+      // Pure-JS ranking from settings.mjs, driven by the site settings, so the
+      // badges and the Settings preview use one implementation. When
+      // src/lib/showcase.ts still exports roleScore(role), it is cross-checked
+      // and any disagreement is reported as `drift`.
       const score = async ({ projects, folder }) => {
-        const mod = await server.ssrLoadModule('/src/lib/showcase.ts')
-        const resumeCount = pageNumber('src/pages/resume.astro', /\.slice\(0,\s*(\d+)\)/, 14)
-        const homeCount = pageNumber('src/pages/index.astro', /pickShowcase\(all,\s*(\d+)\)/, 7)
-        const entries = (projects || []).map((p) => ({
-          id: `${p.folder}/index`,
-          folder: p.folder,
-          data: {
-            ...fm.DEFAULTS, ...p.data,
-            publishedAt: new Date(p.data?.publishedAt ?? 0),
-            gallery: Array.isArray(p.data?.gallery) ? p.data.gallery : [],
-          },
-        })).filter((e) => typeof e.data.role === 'string' && Number.isInteger(e.data.year))
-        const live = entries.filter((e) => !e.data.draft)
+        const settings = loadSettings().data
+        const entries = st.entriesOf(projects, settings)
         const target = entries.find((e) => e.folder === folder)
         if (!target) throw new Error('project not found in score request')
-        const rs = mod.roleScore(target.data.role)
-        // Mirror of resume.astro: roleScore ≥ 2 and a venue or client, newest first.
-        const resumeList = live
-          .filter((p) => mod.roleScore(p.data.role) >= 2 && (p.data.venue || p.data.client))
-          .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
-        const rIdx = resumeList.findIndex((e) => e.folder === folder)
-        const newestYear = Math.max(...live.map((p) => p.data.year))
-        const picks = live.length ? mod.pickShowcase(live, homeCount) : []
-        const hIdx = picks.findIndex((e) => e.folder === folder)
+        const r = st.rank(entries, settings)
+        const { resumeMinScore: min, resumeCount, homeCount } = settings.ranking
+        const rs = st.roleScore(target.data.role, settings)
+        const rIdx = r.resumeAll.indexOf(folder)
+        const hIdx = r.home.findIndex((x) => x.folder === folder)
+        const tier = st.tierIndex(target.data.role, settings)
         const why = []
         if (target.data.draft) why.push('draft')
-        if (rs < 2) why.push(`roleScore ${rs} < 2`)
+        if (rs < min) why.push(`roleScore ${rs} < ${min}`)
         if (!target.data.venue && !target.data.client) why.push('no venue or client')
         if (rIdx >= resumeCount) why.push(`#${rIdx + 1} by date; résumé shows ${resumeCount}`)
+        let drift = null
+        try {
+          const mod = await server.ssrLoadModule('/src/lib/showcase.ts')
+          if (typeof mod.roleScore === 'function' && mod.roleScore.length <= 1) {
+            const off = entries.filter((e) => mod.roleScore(e.data.role) !== st.roleScore(e.data.role, settings))
+            if (off.length) drift = `src/lib/showcase.ts scores ${off.length} role(s) differently from site settings (e.g. "${off[0].data.role}")`
+          }
+        } catch { /* showcase.ts reads settings itself, or is unavailable — nothing to compare */ }
         return {
-          roleScores: Object.fromEntries(entries.map((e) => [e.folder, mod.roleScore(e.data.role)])),
+          roleScores: Object.fromEntries(entries.map((e) => [e.folder, st.roleScore(e.data.role, settings)])),
           roleScore: rs,
-          showcaseScore: Math.round(mod.showcaseScore(target, newestYear) * 100) / 100,
+          tier: tier >= 0 ? { index: tier, match: settings.roles.tiers[tier].match } : null,
+          resumeMinScore: min,
+          showcaseScore: Math.round(st.showcaseScore(target.data, r.newestYear || target.data.year, settings) * 100) / 100,
           resume: { included: rIdx >= 0 && rIdx < resumeCount, rank: rIdx + 1, of: resumeCount, why },
           homepage: {
             eligible: !!target.data.cover && !target.data.draft,
-            included: hIdx >= 0, rank: hIdx + 1, of: homeCount,
+            included: hIdx >= 0, rank: hIdx + 1, of: homeCount, hero: r.hero === folder,
             why: target.data.draft ? ['draft'] : !target.data.cover ? ['no cover image'] : hIdx < 0 ? [`not in top ${homeCount}`] : [],
           },
+          drift,
+        }
+      }
+
+      const writeSettings = (f, data) => {
+        const out = JSON.stringify(data, null, 2) + '\n'
+        const before = fs.existsSync(f.abs) ? fs.readFileSync(f.abs, 'utf8') : null
+        fs.mkdirSync(path.dirname(f.abs), { recursive: true })
+        fs.writeFileSync(f.abs, out)
+        // Re-read and deep-compare what landed on disk with what was intended.
+        const landed = fs.readFileSync(f.abs, 'utf8')
+        let back
+        try { back = JSON.parse(landed) } catch { back = undefined }
+        if (landed !== out || !st.deepEqual(back, data)) {
+          if (before !== null) fs.writeFileSync(f.abs, before)
+          throw new Error('settings write verification failed — original restored')
+        }
+        return out
+      }
+
+      // What the saved settings change vs HEAD, for the review and drafts.
+      const summarizeSettings = async (mine) => {
+        const f = settingsFile()
+        if (!mine.some((x) => x.path === f.rel)) return null
+        const before = await headFile(f.rel)
+        let a = null, b = null
+        try { a = JSON.parse(fs.readFileSync(f.abs, 'utf8')) } catch { /* deleted or broken */ }
+        try { b = before === null ? null : JSON.parse(before) } catch { /* unparseable at HEAD */ }
+        return {
+          path: f.rel, kind: b ? 'modified' : 'added',
+          sections: b ? st.changedSections(a, b) : st.TOP_KEYS,
+          // No HEAD version means the file is new — the PDF may be stale too.
+          resumeChanged: !b || st.resumeChanged(a, b),
         }
       }
 
@@ -422,10 +489,59 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
             res.end(fs.readFileSync(path.join(__dirname, 'index.html')))
             return
           }
+          if (url === '/settings.mjs' && req.method === 'GET') {
+            res.setHeader('content-type', 'text/javascript; charset=utf-8')
+            res.setHeader('cache-control', 'no-store')
+            res.end(fs.readFileSync(path.join(__dirname, 'settings.mjs')))
+            return
+          }
+          // Every API call works against the settings as they are on disk now.
+          if (url.startsWith('/api/')) loadSettings()
           if (url === '/api/projects' && req.method === 'GET') {
             return sendJson(res, 200, {
               base, projectsDir: PROJECTS_REL, branch: await currentBranch().catch(() => null),
-              enums: fm.ENUMS, defaults: fm.DEFAULTS, keys: fm.KEYS, projects: listProjects(),
+              enums: fm.ENUMS, defaults: fm.DEFAULTS, newProject: fm.NEW_PROJECT, keys: fm.KEYS, projects: listProjects(),
+            })
+          }
+          if (url === '/api/settings' && req.method === 'GET') {
+            const cur = loadSettings()
+            return sendJson(res, 200, { data: cur.data, hash: cur.hash, source: cur.source, path: cur.rel })
+          }
+          if (url === '/api/settings' && req.method === 'PUT') {
+            const { data, hash } = await readBody(req)
+            const cur = loadSettings()
+            if (!hash || hash !== cur.hash) {
+              return sendJson(res, 409, { error: `${cur.rel} changed on disk since it was loaded — reload settings before saving` })
+            }
+            const errors = [...st.validateSettings(data), ...st.deletedInUse(data, projectData())]
+            if (errors.length) {
+              return sendJson(res, 422, { error: `invalid settings: ${errors.map((e) => `${e.path}: ${e.msg}`).join('; ')}`, errors })
+            }
+            const changed = st.changedSections(data, cur.data)
+            if (changed.length) {
+              writeSettings(cur, data)
+              await touchPath(cur.rel)
+            }
+            const next = loadSettings()
+            return sendJson(res, 200, {
+              ok: true, changed, data: next.data, hash: next.hash, source: next.source, path: next.rel,
+              enums: fm.ENUMS, defaults: fm.DEFAULTS, newProject: fm.NEW_PROJECT,
+            })
+          }
+          if (url === '/api/settings/usage' && req.method === 'GET') {
+            return sendJson(res, 200, st.usageOf(projectData(), loadSettings().data))
+          }
+          if (url === '/api/settings/preview' && req.method === 'POST') {
+            const { settings, projects } = await readBody(req)
+            const errors = st.validateSettings(settings)
+            if (errors.length) return sendJson(res, 422, { error: 'invalid settings', errors })
+            // Unsaved project edits may be passed in; otherwise use disk.
+            const list = Array.isArray(projects) ? projects : projectData()
+            const saved = loadSettings().data
+            const pick = (r) => ({ resume: r.resume, home: r.home, hero: r.hero, resumeTotal: r.resumeAll.length })
+            return sendJson(res, 200, {
+              next: pick(st.rank(st.entriesOf(list, settings), settings)),
+              current: pick(st.rank(st.entriesOf(list, saved), saved)),
             })
           }
           if (url === '/api/project' && req.method === 'PUT') {
@@ -453,7 +569,7 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
             return sendJson(res, 200, { ok: true, changed, bodyChanged, project: loadProject(folder) })
           }
           if (url === '/api/project' && req.method === 'POST') {
-            const { slug, year, title, discipline } = await readBody(req)
+            const { slug, year, title, discipline = fm.NEW_PROJECT.discipline } = await readBody(req)
             if (!SLUG_RE.test(slug || '')) throw new Error('slug must be kebab-case: a-z, 0-9, single dashes')
             if (!Number.isInteger(year) || year < 1990 || year > 2100) throw new Error('year must be an integer 1990–2100')
             if (!title || !String(title).trim()) throw new Error('title is required')
@@ -523,7 +639,7 @@ export function devAdmin({ base: siteBase = '/' } = {}) {
             for (let i = 2; await branchExists(suggested); i++) suggested = `content-${d}-${i}`
             return sendJson(res, 200, {
               branch: await currentBranch(), files, unrelated,
-              projects: await summarize(mine), suggestedBranch: suggested,
+              projects: await summarize(mine), settings: await summarizeSettings(mine), suggestedBranch: suggested,
             })
           }
           if (url === '/api/branch-check' && req.method === 'GET') {

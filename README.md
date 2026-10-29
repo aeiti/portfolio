@@ -20,8 +20,15 @@ npm run preview  # serves the built site at /portfolio/
 `/portfolio/__admin/`). It edits every project's frontmatter and MDX body,
 uploads images into the project folder, flags content problems (Health tab),
 does find & replace across roles/credits/synopses, and previews the page
-with résumé/homepage badges from `src/lib/showcase.ts`. Saves rewrite only
-the keys you changed. **Review & Ship** shows the diff, then creates a
+with résumé/homepage badges. Saves rewrite only the keys you changed. The
+**Settings** tab edits `src/data/site.json` (identity, contact, nav,
+disciplines/consoles/cover kinds, role vocabulary and score tiers, ranking,
+résumé, about, theme) with a live preview of what the résumé and homepage
+would show; keys used by projects can't be deleted or renamed. Until
+`src/data/site.json` exists it falls back to
+`scripts/dev-admin/fixtures/site.sample.json` (with a warning). After
+changing résumé content, run `npm run resume:pdf`. Select projects to get
+bulk actions in the bottom bar (Esc clears). **Review & Ship** shows the diff, then creates a
 branch, commits just the panel's files, pushes and opens a PR (never on
 `main`, never merges; dry-run by default). Press `?` for shortcuts.
 
