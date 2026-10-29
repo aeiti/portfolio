@@ -1658,7 +1658,7 @@ async function saveSettings() {
 
 // ---- field builders ----
 
-const ITALIC_HINT = 'Wrap words in *asterisks* for italics. No other markup.'
+const ITALIC_HINT = 'Wrap words in *asterisks* for italics; line breaks are kept. No other markup.'
 function sf(label, sp, input, hint, extra) {
   return el('div', { class: 'sf', dataset: { sp } }, label ? el('label', { class: 'f' }, label) : null, input, extra || null,
     hint ? el('div', { class: 'hint' }, hint) : null, el('div', { class: 'sf-err' }))
