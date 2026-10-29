@@ -193,7 +193,9 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
  * else is escaped. For element content (set:html), not attribute values.
  */
 export function md(text: string): string {
-  return escapeHtml(text).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  return escapeHtml(text)
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br />');
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
