@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import ContactLink from '../components/ContactLink.astro';
 import { contact } from '../lib/contact';
 import { roleScore } from '../lib/showcase';
+import { identity, md, site } from '../lib/site';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -12,83 +13,45 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 // the board. Regenerate the PDF after adding projects (npm run resume:pdf).
 const projects = await getCollection('projects', ({ data }) => !data.draft);
 const credits = projects
-  .filter((p) => roleScore(p.data.role) >= 2 && (p.data.venue || p.data.client))
+  .filter((p) => roleScore(p.data.role) >= site.ranking.resumeMinScore && (p.data.venue || p.data.client))
   .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
-  .slice(0, 14);
+  .slice(0, site.ranking.resumeCount);
 
-const experience = [
-  {
-    title: 'Lighting Programmer / LX Operator',
-    org: 'Pasadena Playhouse',
-    place: 'Pasadena, CA',
-    when: 'Jan 2026 – Present',
-    note: 'Program and operate mainstage productions; diagnose network and device-configuration faults live, against a fixed curtain time.',
-  },
-  {
-    title: 'LX Operator / Electrician',
-    org: 'South Coast Repertory',
-    place: 'Costa Mesa, CA',
-    when: 'Sep 2024 – Nov 2025',
-    note: 'Operated and maintained control systems across two houses; first responder for technical faults during performances.',
-  },
-  {
-    title: 'Lighting Programmer / Master Electrician',
-    org: 'PRG',
-    place: 'Las Vegas, NV',
-    when: 'May 2024 – Sep 2024',
-    note: 'Led crews of up to 15 electricians plus overhire on corporate events; built and commissioned rigs of 75 to 400 fixtures on short install windows.',
-  },
-  {
-    title: 'Lighting Technician',
-    org: 'Cirque du Soleil — KÀ',
-    place: 'Las Vegas, NV',
-    when: 'Oct 2021 – Jul 2024',
-    note: 'Maintained a permanently installed 3,300-fixture system across 11 theatre levels, on a schedule of up to ten shows a week.',
-  },
-  {
-    title: 'Master Electrician',
-    org: 'Tuacahn Center for the Arts',
-    place: 'Ivins, UT',
-    when: 'May 2017 – Oct 2021',
-    note: 'Ran electrics for a 1,900-seat outdoor amphitheatre with rigs of up to 750 fixtures across a repertory season.',
-  },
-];
+const { resume } = site;
+const siteUrl = `https://${contact.siteLabel}/`;
+const pdfHref = `${base}/pdfs/resume/${identity.resumePdf}`;
+// "{github}" in a skill line becomes a link to contact.github.
+const githubLink = `<a href="${contact.github.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">${contact.github.replace(/^https?:\/\//, '')}</a>`;
+const skillHtml = (text: string) => text.split('{github}').map(md).join(githubLink);
 ---
 <Base
   title="Résumé"
-  description="Résumé — Adam Manning, lighting programmer, board operator, and electrician."
+  description={identity.pageDescriptions.resume}
 >
   <article class="container resume">
     <header class="head">
-      <h1>Adam Manning</h1>
-      <p class="tagline">Lighting Programmer · Board Operator · Electrician</p>
+      <h1>{identity.name}</h1>
+      <p class="tagline">{identity.resumeTagline}</p>
       <p class="contact-row">
         <span>{contact.location}</span>
         <ContactLink kind="email" />
         <ContactLink kind="phone" />
-        <a href={contact.linkedin}>linkedin.com/in/adam-manning-lx</a>
-        <a href="https://aeiti.github.io/portfolio/">aeiti.github.io/portfolio</a>
+        <a href={contact.linkedin}>{contact.linkedinLabel}</a>
+        <a href={siteUrl}>{contact.siteLabel}</a>
       </p>
       <p class="actions screen-only">
-        <a href={`${base}/pdfs/resume/adam-manning-resume.pdf`} download>Download PDF</a>
+        <a href={pdfHref} download>Download PDF</a>
       </p>
     </header>
 
     <section>
       <h2>Summary</h2>
-      <p>
-        Lighting programmer, board operator, and electrician with nine years
-        in live production — from a 1,900-seat outdoor amphitheatre and
-        Cirque du Soleil's <em>KÀ</em> to the mainstage at Pasadena
-        Playhouse. Programs on ETC Eos and grandMA; comfortable diagnosing
-        network and device faults live, against a curtain time that doesn't
-        move.
-      </p>
+      <p set:html={md(resume.summary)} />
     </section>
 
     <section>
       <h2>Experience</h2>
-      {experience.map((job) => (
+      {resume.experience.map((job) => (
         <div class="job">
           <div class="job-head">
             <h3>{job.title} <span class="org">— {job.org}</span></h3>
@@ -111,36 +74,29 @@ const experience = [
           </li>
         ))}
       </ul>
-      <p class="more screen-only">Full list at <a href={`${base}/work/`}>aeiti.github.io/portfolio/work</a>.</p>
+      <p class="more screen-only">Full list at <a href={`${base}/work/`}>{contact.siteLabel}/work</a>.</p>
     </section>
 
     <section class="two-col">
       <div>
         <h2>Skills</h2>
         <ul class="plain">
-          <li><b>Consoles:</b> ETC Eos family, grandMA2/3; offline preprogramming in Augment3d; show-file, patch and fixture-library management</li>
-          <li><b>Drafting:</b> Vectorworks, Lightwright, show paperwork</li>
-          <li><b>Systems:</b> sACN, Art-Net, RDM; ETC Net3 nodes; ETC Sensor racks (installed and portable); ETC Paradigm (LightDesigner, ControlDesigner); power distribution</li>
-          <li><b>Electrics:</b> moving-light maintenance and troubleshooting</li>
-          <li><b>Also:</b> web development — React, TypeScript (<a href={contact.github}>github.com/aeiti</a>)</li>
+          {resume.skills.map(({ label, text }) => (
+            <li><b>{label}:</b> <Fragment set:html={skillHtml(text)} /></li>
+          ))}
         </ul>
       </div>
       <div>
         <h2>Credentials</h2>
         <ul class="plain">
-          <li>IATSE Local 33</li>
-          <li>OSHA 10 (2021)</li>
+          {resume.credentials.map((c) => <li>{c}</li>)}
         </ul>
       </div>
     </section>
 
     <section>
       <h2>Education</h2>
-      <p>
-        Coursework in computer science at Weber State University, Utah Tech
-        University, and University of the People; no degree conferred. High
-        school diploma, Fremont High School, Plain City, UT.
-      </p>
+      <p set:html={md(resume.education)} />
     </section>
   </article>
 </Base>

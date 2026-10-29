@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import ProjectCard from '../../components/ProjectCard.astro';
+import { identity, site } from '../../lib/site';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -16,16 +17,14 @@ function slugOf(entry: (typeof sorted)[number]) {
 
 const filters = [
   { key: 'all', label: 'All' },
-  { key: 'theatre', label: 'Theatre' },
-  { key: 'concert', label: 'Concert' },
-  { key: 'corporate-event', label: 'Corporate / Event' },
-  { key: 'circus', label: 'Circus' },
+  ...site.disciplines.map(({ key, label }) => ({ key, label })),
 ].filter((f) => f.key === 'all' || sorted.some((e) => e.data.discipline === f.key));
-const perPageOptions = [6, 12, 24, 0]; // 0 = all
+const perPageOptions = site.ranking.workPageSizes; // 0 = all
+const defaultPer = site.ranking.workDefaultPageSize;
 ---
 <Base
   title="Work"
-  description="Selected lighting projects — theatre, concerts, and corporate events."
+  description={identity.pageDescriptions.work}
 >
   <section class="container intro">
     <p class="eyebrow">Work</p>
@@ -36,7 +35,7 @@ const perPageOptions = [6, 12, 24, 0]; // 0 = all
     </p>
   </section>
 
-  <section class="container grid-wrap">
+  <section class="container grid-wrap" data-default-per={defaultPer}>
     <div class="controls" hidden>
       <div class="filters" role="group" aria-label="Filter by discipline">
         {filters.map((f) => (
@@ -49,7 +48,7 @@ const perPageOptions = [6, 12, 24, 0]; // 0 = all
         Show
         <select>
           {perPageOptions.map((n) => (
-            <option value={n} selected={n === 6}>{n === 0 ? 'All' : n}</option>
+            <option value={n} selected={n === defaultPer}>{n === 0 ? 'All' : n}</option>
           ))}
         </select>
         per page
@@ -84,19 +83,20 @@ const perPageOptions = [6, 12, 24, 0]; // 0 = all
   const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-filter]')];
   const select = root.querySelector<HTMLSelectElement>('.per-page select')!;
   const pager = root.querySelector<HTMLElement>('.pager')!;
+  const defaultPer = Number(root.dataset.defaultPer);
 
   const params = new URLSearchParams(location.search);
   const valid = new Set(buttons.map((b) => b.dataset.filter));
   const state = {
     filter: valid.has(params.get('discipline') ?? '') ? params.get('discipline')! : 'all',
-    per: [...select.options].some((o) => o.value === params.get('per')) ? Number(params.get('per')) : 6,
+    per: [...select.options].some((o) => o.value === params.get('per')) ? Number(params.get('per')) : defaultPer,
     page: Math.max(1, Number(params.get('page')) || 1),
   };
 
   function syncUrl() {
     const q = new URLSearchParams();
     if (state.filter !== 'all') q.set('discipline', state.filter);
-    if (state.per !== 6) q.set('per', String(state.per));
+    if (state.per !== defaultPer) q.set('per', String(state.per));
     if (state.page > 1) q.set('page', String(state.page));
     const s = q.toString();
     history.replaceState(null, '', s ? `?${s}` : location.pathname);

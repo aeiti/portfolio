@@ -1,4 +1,5 @@
 import type { CollectionEntry } from 'astro:content';
+import { site, coverKind, roleScore } from './site';
 
 type Project = CollectionEntry<'projects'>;
 
@@ -6,12 +7,14 @@ type Project = CollectionEntry<'projects'>;
 // of the work is Adam's (role), how much there is to look at (gallery),
 // and how recent it is. `featured: true` in frontmatter is a boost, not a
 // hard pin — use it to nudge a project up without maintaining a list.
+// All weights live in src/data/site.json (roles + ranking + coverKinds).
 
-export function roleScore(role: string): number {
-  const r = role.toLowerCase();
-  if (/design|director|programmer|master electrician/.test(r)) return 3;
-  if (/board/.test(r)) return 2;
-  return 1;
+export { roleScore };
+
+const { ranking } = site;
+
+function recencyBonus(age: number): number {
+  return ranking.recency.find((r) => age <= r.maxAgeYears)?.bonus ?? 0;
 }
 
 export function showcaseScore(p: Project, newestYear: number): number {
@@ -19,14 +22,14 @@ export function showcaseScore(p: Project, newestYear: number): number {
   const age = newestYear - d.year;
   return (
     roleScore(d.role) +
-    Math.min(d.gallery.length, 6) / 3 +
-    (d.coverKind === 'photo' ? 1 : 0) +
-    (age <= 1 ? 2 : age <= 3 ? 1 : 0) +
-    (d.featured ? 3 : 0)
+    Math.min(d.gallery.length, ranking.galleryCap) / ranking.galleryDivisor +
+    coverKind(d.coverKind).showcaseBonus +
+    recencyBonus(age) +
+    (d.featured ? ranking.featuredBoost : 0)
   );
 }
 
-export function pickShowcase(projects: Project[], count: number): Project[] {
+export function pickShowcase(projects: Project[], count: number = ranking.homeCount): Project[] {
   const newestYear = Math.max(...projects.map((p) => p.data.year));
   return projects
     .filter((p) => p.data.cover)
@@ -37,4 +40,9 @@ export function pickShowcase(projects: Project[], count: number): Project[] {
     )
     .slice(0, count)
     .map(({ p }) => p);
+}
+
+/** The homepage hero: first pick whose cover kind is hero-eligible, else the first pick. */
+export function pickHero(showcase: Project[]): Project | undefined {
+  return showcase.find((e) => coverKind(e.data.coverKind).heroEligible) ?? showcase[0];
 }

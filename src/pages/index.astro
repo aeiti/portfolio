@@ -2,32 +2,30 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import ProjectCard from '../components/ProjectCard.astro';
-import { pickShowcase } from '../lib/showcase';
+import { pickHero, pickShowcase } from '../lib/showcase';
+import { identity, md, site } from '../lib/site';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const homeDisciplines = site.disciplines.filter((d) => d.showOnHome);
 
 const all = await getCollection('projects', ({ data }) => !data.draft);
-// 1 hero + a 3×2 grid
-const showcase = pickShowcase(all, 7);
-const hero = showcase.find((e) => e.data.coverKind === 'photo') ?? showcase[0];
+// 1 hero + a grid (ranking.homeCount in site.json)
+const showcase = pickShowcase(all, site.ranking.homeCount);
+const hero = pickHero(showcase);
 const rest = showcase.filter((e) => e !== hero);
 
 function slugOf(entry: (typeof all)[number]) {
   return entry.id.replace(/\/index$/, '');
 }
 ---
-<Base title="Adam Manning">
+<Base title={identity.name}>
   <section class="hero container">
-    <p class="eyebrow">Lighting</p>
-    <h1>Lighting for concert,<br />theatre, and corporate stages.</h1>
-    <p class="lede prose">
-      Adam Manning is a lighting programmer, board operator, and
-      electrician working across regional theatre, live music, and
-      large-format corporate events.
-    </p>
+    <p class="eyebrow">{identity.eyebrow}</p>
+    <h1 set:html={md(identity.heroTitle)} />
+    <p class="lede prose" set:html={md(identity.heroLede)} />
     <div class="cta-row">
-      <a class="cta primary" href={`${base}/work/`}>See the work</a>
-      <a class="cta" href={`${base}/contact/`}>Get in touch</a>
+      <a class="cta primary" href={`${base}/work/`}>{identity.ctaPrimary}</a>
+      <a class="cta" href={`${base}/contact/`}>{identity.ctaSecondary}</a>
     </div>
   </section>
 
@@ -68,28 +66,19 @@ function slugOf(entry: (typeof all)[number]) {
   <section class="container disciplines">
     <h2 class="section-title">Disciplines</h2>
     <div class="d-grid">
-      <a href={`${base}/work/?discipline=concert`} class="d">
-        <span class="d-num">01</span>
-        <span class="d-name">Concert &amp; Live Music</span>
-      </a>
-      <a href={`${base}/work/?discipline=theatre`} class="d">
-        <span class="d-num">02</span>
-        <span class="d-name">Theatre &amp; Musicals</span>
-      </a>
-      <a href={`${base}/work/?discipline=corporate-event`} class="d">
-        <span class="d-num">03</span>
-        <span class="d-name">Corporate &amp; Events</span>
-      </a>
+      {homeDisciplines.map((d, i) => (
+        <a href={`${base}/work/?discipline=${d.key}`} class="d">
+          <span class="d-num">{String(i + 1).padStart(2, '0')}</span>
+          <span class="d-name">{d.longLabel}</span>
+        </a>
+      ))}
     </div>
   </section>
 
   <section class="container contact-cta">
-    <h2>Have a show coming up?</h2>
-    <p class="prose">
-      Available for programming, board operation, and electrics work in
-      Southern California and on the road.
-    </p>
-    <a class="cta primary" href={`${base}/contact/`}>Start a conversation</a>
+    <h2>{identity.closingCta.title}</h2>
+    <p class="prose" set:html={md(identity.closingCta.text)} />
+    <a class="cta primary" href={`${base}/contact/`}>{identity.closingCta.button}</a>
   </section>
 </Base>
 
@@ -163,7 +152,7 @@ function slugOf(entry: (typeof all)[number]) {
   }
   .d-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
     gap: 1.5rem;
   }
   .d {
