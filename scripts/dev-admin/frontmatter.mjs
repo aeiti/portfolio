@@ -20,6 +20,10 @@ export const KEYS = [
   'cover', 'coverKind', 'gallery', 'documents', 'consoleFilesAvailable',
   'console', 'featured', 'publishedAt', 'draft', 'credits',
 ]
+// Allowed values and defaults come from the site settings (src/data/site.json,
+// see settings.mjs). These objects are updated IN PLACE by applySettings() —
+// the plugin calls it on every request, so an edited site.json takes effect
+// without a restart. The literals below are only the pre-settings fallback.
 export const ENUMS = {
   discipline: ['concert', 'theatre', 'corporate-event', 'circus'],
   coverKind: ['photo', 'plot'],
@@ -28,6 +32,18 @@ export const ENUMS = {
 export const DEFAULTS = {
   credits: [], coverKind: 'photo', gallery: [], documents: [],
   consoleFilesAvailable: false, console: 'eos', featured: false, draft: false,
+}
+// Values the new-project template starts with (not schema defaults).
+export const NEW_PROJECT = { discipline: 'theatre', role: 'Lighting Programmer' }
+
+export function applySettings(s) {
+  ENUMS.discipline = s.disciplines.map((d) => d.key)
+  ENUMS.coverKind = s.coverKinds.map((d) => d.key)
+  ENUMS.console = s.consoles.map((d) => d.key)
+  DEFAULTS.coverKind = s.defaults.coverKind
+  DEFAULTS.console = s.defaults.console
+  NEW_PROJECT.discipline = s.defaults.discipline
+  NEW_PROJECT.role = s.defaults.newProjectRole
 }
 const OPTIONAL = new Set(['venue', 'client', 'cover', ...Object.keys(DEFAULTS)])
 
@@ -239,19 +255,19 @@ export function buildFile(src, data, body) {
 }
 
 // New-project file. Starts as a draft so nothing goes live by accident; the
-// title goes through the YAML stringifier so quotes/colons are escaped.
-export function template({ title, discipline, year, publishedAt }) {
+// title and role go through the YAML stringifier so quotes/colons are escaped.
+export function template({ title, discipline = NEW_PROJECT.discipline, year, publishedAt, role = NEW_PROJECT.role }) {
   return [
     '---',
     new Document({ title }).toString().trimEnd(),
     `discipline: ${discipline}`,
     `year: ${year}`,
-    'role: Lighting Programmer',
+    new Document({ role }).toString().trimEnd(),
     'venue: ""',
     'client: ""',
     'synopsis: >-',
     '  One- to three-sentence summary.',
-    'coverKind: photo',
+    `coverKind: ${DEFAULTS.coverKind}`,
     'gallery: []',
     'documents: []',
     'consoleFilesAvailable: false',
