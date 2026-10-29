@@ -1,12 +1,13 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { site, disciplineKeys, consoleKeys, coverKindKeys } from './lib/site';
 
 const projects = defineCollection({
   loader: glob({ pattern: '**/index.{md,mdx}', base: './src/content/projects' }),
   schema: ({ image }) =>
     z.object({
       title: z.string(),
-      discipline: z.enum(['concert', 'theatre', 'corporate-event', 'circus']),
+      discipline: z.enum(disciplineKeys),
       year: z.number().int().min(1990).max(2100),
       role: z.string(),
       venue: z.string().optional(),
@@ -21,7 +22,7 @@ const projects = defineCollection({
         .default([]),
       synopsis: z.string(),
       cover: image().optional(),
-      coverKind: z.enum(['photo', 'plot']).default('photo'),
+      coverKind: z.enum(coverKindKeys).default(site.defaults.coverKind),
       gallery: z.array(image()).default([]),
       documents: z
         .array(
@@ -32,8 +33,8 @@ const projects = defineCollection({
         )
         .default([]),
       consoleFilesAvailable: z.boolean().default(false),
-      // Which console the show file is for; nearly everything is Eos.
-      console: z.enum(['eos', 'element', 'grandma2']).default('eos'),
+      // Which console the show file is for (keys and default in site.json).
+      console: z.enum(consoleKeys).default(site.defaults.console),
       featured: z.boolean().default(false),
       publishedAt: z.date(),
       draft: z.boolean().default(false),

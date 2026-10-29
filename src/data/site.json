@@ -1,0 +1,291 @@
+{
+  "identity": {
+    "name": "Adam Manning",
+    "eyebrow": "Lighting",
+    "heroTitle": "Lighting for concert, theatre, and corporate stages.",
+    "heroLede": "Adam Manning is a lighting programmer, board operator, and electrician working across regional theatre, live music, and large-format corporate events.",
+    "ctaPrimary": "See the work",
+    "ctaSecondary": "Get in touch",
+    "closingCta": {
+      "title": "Have a show coming up?",
+      "text": "Available for programming, board operation, and electrics work in Southern California and on the road.",
+      "button": "Start a conversation"
+    },
+    "resumeTagline": "Lighting Programmer · Board Operator · Electrician",
+    "seoDescription": "Adam Manning — lighting programmer, board operator, and electrician for theatre, concerts, and corporate events.",
+    "pageDescriptions": {
+      "work": "Selected lighting projects — theatre, concerts, and corporate events.",
+      "about": "Adam Manning is a lighting programmer, board operator, and electrician working across theatre, concerts, and corporate events in Southern California.",
+      "contact": "Get in touch with Adam Manning for lighting programming, board operation, and electrics work.",
+      "resume": "Résumé — Adam Manning, lighting programmer, board operator, and electrician."
+    },
+    "ogImage": null,
+    "gaId": "G-67DQPQMHRS",
+    "consoleNote": "{console} show files for this production are available on request.",
+    "resumePdf": "adam-manning-resume.pdf"
+  },
+  "contact": {
+    "email": "adam@thomasavl.com",
+    "phone": "(213) 796-0937",
+    "linkedin": "https://www.linkedin.com/in/adam-manning-lx",
+    "linkedinLabel": "linkedin.com/in/adam-manning-lx",
+    "github": "https://github.com/aeiti",
+    "location": "Riverside, CA",
+    "siteLabel": "aeiti.github.io/portfolio"
+  },
+  "nav": [
+    {
+      "label": "Work",
+      "href": "/work/"
+    },
+    {
+      "label": "About",
+      "href": "/about/"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact/"
+    }
+  ],
+  "disciplines": [
+    {
+      "key": "theatre",
+      "label": "Theatre",
+      "longLabel": "Theatre & Musicals",
+      "glow": "rgba(255,180,83,.12)",
+      "showOnHome": true
+    },
+    {
+      "key": "concert",
+      "label": "Concert",
+      "longLabel": "Concert & Live Music",
+      "glow": "rgba(120,180,255,.10)",
+      "showOnHome": true
+    },
+    {
+      "key": "corporate-event",
+      "label": "Corporate / Event",
+      "longLabel": "Corporate & Events",
+      "glow": "rgba(180,180,180,.08)",
+      "showOnHome": true
+    },
+    {
+      "key": "circus",
+      "label": "Circus",
+      "longLabel": "Circus",
+      "glow": "rgba(220,80,80,.14)",
+      "showOnHome": true
+    }
+  ],
+  "consoles": [
+    {
+      "key": "eos",
+      "label": "ETC Eos"
+    },
+    {
+      "key": "element",
+      "label": "ETC Element"
+    },
+    {
+      "key": "grandma2",
+      "label": "grandMA2"
+    }
+  ],
+  "defaults": {
+    "discipline": "theatre",
+    "console": "eos",
+    "coverKind": "photo",
+    "newProjectRole": "Lighting Programmer"
+  },
+  "coverKinds": [
+    {
+      "key": "photo",
+      "label": "Photo",
+      "fit": "cover",
+      "cardAspect": "4 / 3",
+      "heroAspect": "16/9",
+      "heroMaxVh": 60,
+      "showcaseBonus": 1,
+      "heroEligible": true
+    },
+    {
+      "key": "plot",
+      "label": "Plot",
+      "fit": "contain",
+      "cardAspect": "4 / 3",
+      "heroAspect": "4/3",
+      "heroMaxVh": 55,
+      "showcaseBonus": 0,
+      "heroEligible": false
+    }
+  ],
+  "roles": {
+    "vocabulary": [
+      "Busker",
+      "Electrician",
+      "Followspot Operator",
+      "Light Board Operator",
+      "Lighting Designer",
+      "Lighting Director",
+      "Lighting Programmer",
+      "Lighting Technician",
+      "Master Electrician",
+      "Network Install Lead (under the Lead Electrician)"
+    ],
+    "creditRoles": [
+      "Additional Costume Design",
+      "Assistant Choreographer",
+      "Assistant Director / Choreographer",
+      "Associate Director / Choreographer",
+      "Choreographer",
+      "Co-Director",
+      "Costume Designer",
+      "Director",
+      "Director / Choreographer",
+      "Directors",
+      "Fight Director",
+      "Lighting Designer",
+      "Lighting Designers",
+      "Music Direction",
+      "Music Director",
+      "Projection Designer",
+      "Scenic Designer",
+      "Scenic Designers",
+      "Sound Designer",
+      "Sound Designer / Looping Systems Architect",
+      "Sound Designers",
+      "Video / Projection Designer"
+    ],
+    "tiers": [
+      {
+        "match": "design|director|programmer|master electrician",
+        "score": 3
+      },
+      {
+        "match": "board",
+        "score": 2
+      }
+    ],
+    "fallbackScore": 1
+  },
+  "ranking": {
+    "resumeMinScore": 2,
+    "resumeCount": 14,
+    "homeCount": 7,
+    "workPageSizes": [
+      6,
+      12,
+      24,
+      0
+    ],
+    "workDefaultPageSize": 6,
+    "recency": [
+      {
+        "maxAgeYears": 1,
+        "bonus": 2
+      },
+      {
+        "maxAgeYears": 3,
+        "bonus": 1
+      }
+    ],
+    "galleryCap": 6,
+    "galleryDivisor": 3,
+    "featuredBoost": 3
+  },
+  "resume": {
+    "summary": "Lighting programmer, board operator, and electrician with nine years in live production — from a 1,900-seat outdoor amphitheatre and Cirque du Soleil's *KÀ* to the mainstage at Pasadena Playhouse. Programs on ETC Eos and grandMA; comfortable diagnosing network and device faults live, against a curtain time that doesn't move.",
+    "experience": [
+      {
+        "title": "Lighting Programmer / LX Operator",
+        "org": "Pasadena Playhouse",
+        "place": "Pasadena, CA",
+        "when": "Jan 2026 – Present",
+        "note": "Program and operate mainstage productions; diagnose network and device-configuration faults live, against a fixed curtain time."
+      },
+      {
+        "title": "LX Operator / Electrician",
+        "org": "South Coast Repertory",
+        "place": "Costa Mesa, CA",
+        "when": "Sep 2024 – Nov 2025",
+        "note": "Operated and maintained control systems across two houses; first responder for technical faults during performances."
+      },
+      {
+        "title": "Lighting Programmer / Master Electrician",
+        "org": "PRG",
+        "place": "Las Vegas, NV",
+        "when": "May 2024 – Sep 2024",
+        "note": "Led crews of up to 15 electricians plus overhire on corporate events; built and commissioned rigs of 75 to 400 fixtures on short install windows."
+      },
+      {
+        "title": "Lighting Technician",
+        "org": "Cirque du Soleil — KÀ",
+        "place": "Las Vegas, NV",
+        "when": "Oct 2021 – Jul 2024",
+        "note": "Maintained a permanently installed 3,300-fixture system across 11 theatre levels, on a schedule of up to ten shows a week."
+      },
+      {
+        "title": "Master Electrician",
+        "org": "Tuacahn Center for the Arts",
+        "place": "Ivins, UT",
+        "when": "May 2017 – Oct 2021",
+        "note": "Ran electrics for a 1,900-seat outdoor amphitheatre with rigs of up to 750 fixtures across a repertory season."
+      }
+    ],
+    "skills": [
+      {
+        "label": "Consoles",
+        "text": "ETC Eos family, grandMA2/3; offline preprogramming in Augment3d; show-file, patch and fixture-library management"
+      },
+      {
+        "label": "Drafting",
+        "text": "Vectorworks, Lightwright, show paperwork"
+      },
+      {
+        "label": "Systems",
+        "text": "sACN, Art-Net, RDM; ETC Net3 nodes; ETC Sensor racks (installed and portable); ETC Paradigm (LightDesigner, ControlDesigner); power distribution"
+      },
+      {
+        "label": "Electrics",
+        "text": "moving-light maintenance and troubleshooting"
+      },
+      {
+        "label": "Also",
+        "text": "web development — React, TypeScript ({github})"
+      }
+    ],
+    "credentials": [
+      "IATSE Local 33",
+      "OSHA 10 (2021)"
+    ],
+    "education": "Coursework in computer science at Weber State University, Utah Tech University, and University of the People; no degree conferred. High school diploma, Fremont High School, Plain City, UT."
+  },
+  "about": {
+    "bio": [
+      "Adam Manning is a lighting programmer, board operator, and electrician based in Southern California, working across regional theatre, live music, and corporate events. Recent credits include programming and running the board at Pasadena Playhouse (*Amadeus*, *MEXODUS*, *The Visit*), South Coast Repertory, and Latino Theater Company at the Los Angeles Theatre Center.",
+      "Adam started in 2017 on the followspot and electrics crews at Tuacahn's outdoor amphitheatre in Southern Utah, moving to the board and programming seat over the following seasons. From 2021 to 2024 Adam was a lighting technician on Cirque du Soleil's *KÀ* in Las Vegas, alongside stadium and corporate work — from Raiders games at Allegiant Stadium to CrowdStrike Fal.Con Fest and the network install at the Las Vegas Grand Prix Plaza. Occasional lighting design for concerts and corporate events rounds things out."
+    ],
+    "capabilities": [
+      "Lighting programming — ETC Eos family, grandMA2/3",
+      "Offline preprogramming & previs — Augment3d",
+      "Show-file management, patching & fixture-library work",
+      "Board operation & followspot",
+      "Electrics — hang, focus, maintenance, practical builds",
+      "Moving-light maintenance & troubleshooting",
+      "Drafting & paperwork — Vectorworks, Lightwright, show paperwork",
+      "Show networking — sACN, Art-Net, RDM, ETC Net3 nodes",
+      "Power distribution & dimming — ETC Sensor racks (installed & portable)",
+      "Architectural control — ETC Paradigm (LightDesigner, ControlDesigner)",
+      "Lighting design — concerts & corporate events"
+    ],
+    "credentials": [
+      "OSHA 10 certified (2021)",
+      "IATSE Local 33"
+    ]
+  },
+  "theme": {
+    "accentDark": "#ffb453",
+    "accentLight": null,
+    "ctaInk": "#14131a"
+  }
+}

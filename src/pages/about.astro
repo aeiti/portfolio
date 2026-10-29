@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import { identity, md, site } from '../lib/site';
 
 const additionalCreditsRaw: { year: number; title: string; discipline: string; venue?: string }[] = [
 ];
@@ -17,58 +18,28 @@ const additionalCredits = additionalCreditsRaw
 ---
 <Base
   title="About"
-  description="Adam Manning is a lighting programmer, board operator, and electrician working across theatre, concerts, and corporate events in Southern California."
+  description={identity.pageDescriptions.about}
 >
   <section class="container about">
     <p class="eyebrow">About</p>
-    <h1>Adam Manning</h1>
+    <h1>{identity.name}</h1>
 
     <div class="bio prose">
-      <p>
-        Adam Manning is a lighting programmer, board operator, and
-        electrician based in Southern California, working across regional
-        theatre, live music, and corporate events. Recent credits include
-        programming and running the board at Pasadena Playhouse
-        (<em>Amadeus</em>, <em>MEXODUS</em>,
-        <em>The Visit</em>), South Coast Repertory, and Latino
-        Theater Company at the Los Angeles Theatre Center.
-      </p>
-      <p>
-        Adam started in 2017 on the followspot and electrics crews at
-        Tuacahn's outdoor amphitheatre in Southern Utah, moving to the
-        board and programming seat over the following seasons. From 2021 to
-        2024 Adam was a lighting technician on Cirque du Soleil's
-        <em>KÀ</em> in Las Vegas, alongside stadium and
-        corporate work — from Raiders games at Allegiant Stadium to
-        CrowdStrike Fal.Con Fest and the network install at the Las Vegas
-        Grand Prix Plaza. Occasional lighting design for concerts and
-        corporate events rounds things out.
-      </p>
+      {site.about.bio.map((para) => <p set:html={md(para)} />)}
     </div>
 
     <div class="grid">
       <section>
         <h2 class="section-title">Capabilities</h2>
         <ul class="list">
-          <li>Lighting programming — ETC Eos family, grandMA2/3</li>
-          <li>Offline preprogramming &amp; previs — Augment3d</li>
-          <li>Show-file management, patching &amp; fixture-library work</li>
-          <li>Board operation &amp; followspot</li>
-          <li>Electrics — hang, focus, maintenance, practical builds</li>
-          <li>Moving-light maintenance &amp; troubleshooting</li>
-          <li>Drafting &amp; paperwork — Vectorworks, Lightwright, show paperwork</li>
-          <li>Show networking — sACN, Art-Net, RDM, ETC Net3 nodes</li>
-          <li>Power distribution &amp; dimming — ETC Sensor racks (installed &amp; portable)</li>
-          <li>Architectural control — ETC Paradigm (LightDesigner, ControlDesigner)</li>
-          <li>Lighting design — concerts &amp; corporate events</li>
+          {site.about.capabilities.map((c) => <li>{c}</li>)}
         </ul>
       </section>
 
       <section>
         <h2 class="section-title">Credentials</h2>
         <ul class="list">
-          <li>OSHA 10 certified (2021)</li>
-          <li>IATSE Local 33</li>
+          {site.about.credentials.map((c) => <li>{c}</li>)}
         </ul>
       </section>
     </div>

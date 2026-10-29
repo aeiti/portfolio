@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import { identity, site } from '../lib/site';
 
 interface Props {
   title: string;
@@ -10,14 +11,22 @@ interface Props {
 }
 
 const { title, description, ogImage } = Astro.props;
-const fullTitle = title === 'Adam Manning' ? title : `${title} — Adam Manning`;
-const desc =
-  description ??
-  'Adam Manning — lighting programmer, board operator, and electrician for theatre, concerts, and corporate events.';
+const fullTitle = title === identity.name ? title : `${title} — ${identity.name}`;
+const desc = description ?? identity.seoDescription;
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
-const og = ogImage ? new URL(ogImage, Astro.site).toString() : null;
+// identity.ogImage is a path under public/, so it needs the deploy base.
+const fallbackOg = identity.ogImage
+  ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}/${identity.ogImage.replace(/^\//, '')}`
+  : undefined;
+const ogSrc = ogImage ?? fallbackOg;
+const og = ogSrc ? new URL(ogSrc, Astro.site).toString() : null;
 // Google Analytics only on production builds, so local dev/preview isn't counted.
-const GA_ID = 'G-67DQPQMHRS';
+const GA_ID = identity.gaId;
+// Theme colours from site.json, layered over the defaults in global.css.
+const { theme } = site;
+const themeCss =
+  `:root{--accent:${theme.accentDark};--cta-ink:${theme.ctaInk}}` +
+  (theme.accentLight ? `@media (prefers-color-scheme: light){:root{--accent:${theme.accentLight}}}` : '');
 const analytics = import.meta.env.PROD;
 ---
 <!doctype html>
@@ -36,6 +45,8 @@ const analytics = import.meta.env.PROD;
     <meta property="og:url" content={canonical} />
     {og && <meta property="og:image" content={og} />}
     <meta name="twitter:card" content={og ? 'summary_large_image' : 'summary'} />
+
+    <style is:inline set:html={themeCss}></style>
 
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/favicon.svg`} />
 
@@ -60,7 +71,7 @@ const analytics = import.meta.env.PROD;
       </>
     )}
   </head>
-  <body>
+  <body data-resume-pdf={identity.resumePdf}>
     <header><Nav /></header>
     <main id="main"><slot /></main>
     <Footer />
@@ -69,6 +80,7 @@ const analytics = import.meta.env.PROD;
       // Custom GA events for the actions that matter. No-op when gtag isn't
       // loaded (dev builds, blockers). Contact links get their real href at
       // load, so read it at click time.
+      const resumePdf = document.body.dataset.resumePdf;
       const track = (name: string, params: Record<string, string>) =>
         (window as any).gtag?.('event', name, params);
 
@@ -80,7 +92,7 @@ const analytics = import.meta.env.PROD;
         if (href.startsWith('mailto:')) track('email_click', { page });
         else if (href.startsWith('tel:')) track('phone_click', { page });
         else if (href.includes('linkedin.com')) track('linkedin_click', { page });
-        else if (href.endsWith('adam-manning-resume.pdf')) track('resume_download', { page });
+        else if (resumePdf && href.endsWith(resumePdf)) track('resume_download', { page });
         else if (/\/pdfs\/.+\.pdf$/.test(href)) track('document_download', { file: href.split('/').pop() ?? '', page });
       });
     </script>

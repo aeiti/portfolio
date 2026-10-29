@@ -3,10 +3,11 @@ import { Image } from 'astro:assets';
 import Base from './Base.astro';
 import Gallery from '../components/Gallery.astro';
 import type { ImageMetadata } from 'astro';
+import { coverKind as kindOf, consoleLabel, disciplineLabel, identity } from '../lib/site';
 
 interface Props {
   title: string;
-  discipline: 'concert' | 'theatre' | 'corporate-event' | 'circus';
+  discipline: string;
   year: number;
   role: string;
   venue?: string;
@@ -14,11 +15,11 @@ interface Props {
   credits: { role: string; name: string }[];
   synopsis: string;
   cover?: ImageMetadata;
-  coverKind: 'photo' | 'plot';
+  coverKind: string;
   gallery: ImageMetadata[];
   documents: { label: string; file: string }[];
   consoleFilesAvailable: boolean;
-  console: 'eos' | 'element' | 'grandma2';
+  console: string;
 }
 
 const {
@@ -27,25 +28,16 @@ const {
   documents, consoleFilesAvailable, console: showConsole,
 } = Astro.props;
 
-const consoleLabel: Record<Props['console'], string> = {
-  eos: 'ETC Eos',
-  element: 'ETC Element',
-  grandma2: 'grandMA2',
-};
-
-const disciplineLabel: Record<Props['discipline'], string> = {
-  concert: 'Concert',
-  theatre: 'Theatre',
-  'corporate-event': 'Corporate / Event',
-  circus: 'Circus',
-};
+const kind = kindOf(coverKind);
+const heroStyle = `--hero-aspect:${kind.heroAspect};--hero-max:${kind.heroMaxVh}vh;--cover-fit:${kind.fit}`;
+const consoleNote = identity.consoleNote.replaceAll('{console}', consoleLabel(showConsole));
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <Base title={title} description={synopsis} ogImage={cover?.src}>
   <article>
     {cover && (
-      <div class={`hero kind-${coverKind}`}>
+      <div class={`hero kind-${kind.key}`} style={heroStyle}>
         <Image
           src={cover}
           alt={`${title} — cover image`}
@@ -58,7 +50,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     )}
 
     <header class="container project-header">
-      <p class="eyebrow">{disciplineLabel[discipline]} &middot; {year}</p>
+      <p class="eyebrow">{disciplineLabel(discipline)} &middot; {year}</p>
       <h1>{title}</h1>
       <p class="role">{role}{venue ? ` · ${venue}` : ''}{client ? ` · ${client}` : ''}</p>
       <p class="synopsis prose">{synopsis}</p>
@@ -103,7 +95,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     {consoleFilesAvailable && (
       <section class="container">
         <p class="console-note">
-          {consoleLabel[showConsole]} show files for this production are available on request.
+          {consoleNote}
         </p>
       </section>
     )}
@@ -119,8 +111,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
   .hero {
     width: 100%;
-    aspect-ratio: 16 / 9;
-    max-height: 60vh;
+    aspect-ratio: var(--hero-aspect);
+    max-height: var(--hero-max);
     overflow: hidden;
     background: var(--bg-elev);
     border-bottom: 1px solid var(--border);
@@ -128,14 +120,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   .hero :global(img) {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-  }
-  .hero.kind-plot {
-    aspect-ratio: 4 / 3;
-    max-height: 55vh;
-  }
-  .hero.kind-plot :global(img) {
-    object-fit: contain;
+    object-fit: var(--cover-fit);
   }
 
   .project-header {
